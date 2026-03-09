@@ -31,7 +31,7 @@ export async function GET() {
     if (pErr || !photographer) return unauthorizedResponse("Photographer not found");
 
     // ── Fetch all data in parallel ──
-    const [studioRes, subscriptionRes, todayBookingsRes, enquiriesRes, notificationsRes] =
+    const [studioRes, subscriptionRes, totalBookingsRes, enquiriesRes, notificationsRes] =
       await Promise.all([
         // Studio profile
         admin
@@ -51,13 +51,11 @@ export async function GET() {
           .limit(1)
           .single(),
 
-        // Today's bookings count
+        // Total bookings count
         admin
           .from("bookings")
           .select("id", { count: "exact", head: true })
-          .eq("photographer_id", photographer.id)
-          .gte("event_date", new Date().toISOString().split("T")[0])
-          .lte("event_date", new Date().toISOString().split("T")[0]),
+          .eq("photographer_id", photographer.id),
 
         // Pending enquiries count
         admin
@@ -156,7 +154,7 @@ export async function GET() {
           }
         : null,
       stats: {
-        todayBookings: todayBookingsRes.count ?? 0,
+        totalBookings: totalBookingsRes.count ?? 0,
         pendingEnquiries: enquiriesRes.count ?? 0,
         unreadNotifications: notificationsRes.count ?? 0,
       },

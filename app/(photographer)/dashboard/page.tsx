@@ -1,49 +1,63 @@
 // ============================================
 // /(photographer)/dashboard — Main dashboard page
 // Fetches real data from API and shows overview
+// Uses in-memory cache for instant revisits
 // ============================================
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DashboardWelcome, type DashboardData } from "@/components/DashboardWelcome";
 
+// In-memory cache: show stale data instantly, then refresh in background
+let cachedData: DashboardData | null = null;
+let cacheTime = 0;
+const CACHE_TTL = 60_000; // 1 minute
+
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<DashboardData | null>(cachedData);
+  const [loading, setLoading] = useState(!cachedData);
   const [error, setError] = useState<string | null>(null);
+  const isMounted = useRef(true);
 
   useEffect(() => {
-    (async () => {
+    isMounted.current = true;
+
+    const fetchData = async () => {
       try {
         const res = await fetch("/api/v1/dashboard");
         const json = await res.json();
 
+        if (!isMounted.current) return;
+
         if (!res.ok || !json.success) {
-          setError(json.error || "Failed to load dashboard");
+          if (!cachedData) setError(json.error || "Failed to load dashboard");
           return;
         }
 
+        cachedData = json.data;
+        cacheTime = Date.now();
         setData(json.data);
       } catch {
-        setError("Network error. Please refresh.");
+        if (!isMounted.current) return;
+        if (!cachedData) setError("Network error. Please refresh.");
       } finally {
-        setLoading(false);
+        if (isMounted.current) setLoading(false);
       }
-    })();
+    };
+
+    // If cache is fresh, skip fetch
+    if (cachedData && Date.now() - cacheTime < CACHE_TTL) {
+      setLoading(false);
+    } else {
+      fetchData();
+    }
+
+    return () => { isMounted.current = false; };
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Loading dashboard...
-          </p>
-        </div>
-      </div>
-    );
+    return null; // No flash — data is prefetched, renders instantly
   }
 
   if (error || !data) {

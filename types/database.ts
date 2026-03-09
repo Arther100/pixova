@@ -462,6 +462,7 @@ export interface Database {
           photographer_id: string;
           client_id: string;
           package_id: string | null;
+          booking_ref: string | null;
           title: string;
           event_type: string | null;
           event_date: string | null;
@@ -486,6 +487,7 @@ export interface Database {
           photographer_id: string;
           client_id: string;
           package_id?: string | null;
+          booking_ref?: string | null;
           title: string;
           event_type?: string | null;
           event_date?: string | null;
@@ -509,6 +511,7 @@ export interface Database {
           photographer_id?: string;
           client_id?: string;
           package_id?: string | null;
+          booking_ref?: string | null;
           title?: string;
           event_type?: string | null;
           event_date?: string | null;

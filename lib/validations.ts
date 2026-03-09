@@ -74,17 +74,60 @@ export const updateClientSchema = createClientSchema.partial();
 
 // ---------- Booking ----------
 export const createBookingSchema = z.object({
-  clientId: z.uuid("Invalid client ID"),
+  // Client inline fields (used to upsert client by phone)
+  clientName: z.string().min(2, "Client name must be at least 2 characters").max(200),
+  clientMobile: phoneSchema,
+  clientEmail: z.email("Invalid email address").optional(),
+  // Booking fields
   title: z.string().min(1, "Title is required").max(200),
   eventType: z.string().max(100).optional(),
   eventDate: z.string().date("Invalid date format (YYYY-MM-DD)").optional(),
+  eventEndDate: z.string().date("Invalid date format (YYYY-MM-DD)").optional(),
+  eventTime: z.string().max(10).optional(),
   venue: z.string().max(300).optional(),
-  totalAmount: z.number().int().min(0, "Amount must be positive"), // paise
+  venueAddress: z.string().max(500).optional(),
+  city: z.string().max(100).optional(),
+  packageId: z.uuid("Invalid package ID").optional(),
+  totalAmount: z.number().int().min(100000, "Minimum total is ₹1,000"), // paise — min ₹1,000
+  advanceAmount: z.number().int().min(0).default(0), // paise
   notes: z.string().max(2000).optional(),
+  internalNotes: z.string().max(2000).optional(),
+  teamMembers: z.array(z.string().max(100)).max(20).optional(),
 });
 
-export const updateBookingSchema = createBookingSchema.partial().omit({
-  clientId: true,
+export const updateBookingSchema = z.object({
+  title: z.string().min(1, "Title is required").max(200).optional(),
+  eventType: z.string().max(100).optional(),
+  eventDate: z.string().date("Invalid date format (YYYY-MM-DD)").optional(),
+  eventEndDate: z.string().date("Invalid date format (YYYY-MM-DD)").optional(),
+  eventTime: z.string().max(10).optional(),
+  venue: z.string().max(300).optional(),
+  venueAddress: z.string().max(500).optional(),
+  city: z.string().max(100).optional(),
+  packageId: z.uuid("Invalid package ID").optional(),
+  totalAmount: z.number().int().min(100000, "Minimum total is ₹1,000").optional(), // paise
+  advanceAmount: z.number().int().min(0).optional(),
+  notes: z.string().max(2000).optional(),
+  internalNotes: z.string().max(2000).optional(),
+  teamMembers: z.array(z.string().max(100)).max(20).optional(),
+});
+
+export const updateBookingStatusSchema = z.object({
+  status: z.enum(["enquiry", "confirmed", "in_progress", "delivered", "completed", "cancelled"]),
+  reason: z.string().max(500).optional(), // required for cancellation
+});
+
+// ---------- Booking list filters ----------
+export const bookingFilterSchema = z.object({
+  status: z.enum(["enquiry", "confirmed", "in_progress", "delivered", "completed", "cancelled"]).optional(),
+  dateFrom: z.string().date().optional(),
+  dateTo: z.string().date().optional(),
+  eventType: z.string().max(100).optional(),
+  search: z.string().max(200).optional(), // client name, mobile, or booking ref
+  sortBy: z.enum(["event_date", "created_at", "total_amount"]).default("created_at"),
+  sortOrder: z.enum(["asc", "desc"]).default("desc"),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
 // ---------- Gallery ----------
@@ -247,6 +290,8 @@ export type CreateClientInput = z.infer<typeof createClientSchema>;
 export type UpdateClientInput = z.infer<typeof updateClientSchema>;
 export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 export type UpdateBookingInput = z.infer<typeof updateBookingSchema>;
+export type UpdateBookingStatusInput = z.infer<typeof updateBookingStatusSchema>;
+export type BookingFilterInput = z.infer<typeof bookingFilterSchema>;
 export type CreateGalleryInput = z.infer<typeof createGallerySchema>;
 export type UpdateGalleryInput = z.infer<typeof updateGallerySchema>;
 export type PresignedUrlInput = z.infer<typeof presignedUrlSchema>;

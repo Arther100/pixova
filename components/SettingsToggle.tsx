@@ -4,13 +4,22 @@ import { useTheme } from "@/lib/theme";
 import { useI18n, LOCALE_NAMES, type Locale } from "@/lib/i18n";
 import { BRAND_COLORS, BRAND_COLOR_KEYS } from "@/lib/colors";
 import { useState, useRef, useEffect } from "react";
+import { usePathname } from "next/navigation";
 
-/** Floating settings button — theme toggle + language picker + color picker */
+// Pages that use the photographer layout (which has its own settings in profile dropdown)
+const PHOTOGRAPHER_ROUTES = ["/dashboard", "/bookings", "/galleries", "/clients", "/payments", "/settings"];
+
+/** Floating settings button — theme toggle + language picker + color picker.
+ *  Hidden on photographer pages where the layout header has its own profile menu. */
 export function SettingsToggle() {
   const { theme, toggleTheme, brandColor, setBrandColor } = useTheme();
   const { locale, t, setLocale } = useI18n();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
+
+  // Hide on photographer pages (layout has its own dropdown)
+  const isPhotographerPage = PHOTOGRAPHER_ROUTES.some((r) => pathname.startsWith(r));
 
   // Close on outside click
   useEffect(() => {
@@ -22,6 +31,8 @@ export function SettingsToggle() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  if (isPhotographerPage) return null;
 
   const locales: Locale[] = ["en", "ta", "hi", "ml"];
 

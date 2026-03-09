@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
     await enforceSessionLimit(photographer.id, sessionLimit);
 
     // ── Create active session ──
-    const sessionId = await createActiveSession(photographer.id, request);
+    await createActiveSession(photographer.id, request);
 
     // ── Update last_login_at ──
     await supabase

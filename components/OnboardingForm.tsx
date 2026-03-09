@@ -475,7 +475,7 @@ export function OnboardingForm({
               <select
                 value={form.state}
                 onChange={(e) => updateField("state", e.target.value)}
-                className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-100 [&>option]:dark:bg-gray-800 [&>option]:dark:text-gray-100 ${
+                className={`select-styled w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-100 [&>option]:dark:bg-gray-800 [&>option]:dark:text-gray-100 ${
                   errors.state ? "border-red-500" : "border-gray-300 dark:border-gray-600"
                 }`}
               >
