@@ -307,6 +307,9 @@ export interface Database {
           features: Json;
           is_active: boolean;
           sort_order: number;
+          booking_limit: number;
+          overage_enabled: boolean;
+          overage_price: number;
           created_at: string;
           updated_at: string;
         };
@@ -325,6 +328,9 @@ export interface Database {
           features?: Json;
           is_active?: boolean;
           sort_order?: number;
+          booking_limit?: number;
+          overage_enabled?: boolean;
+          overage_price?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -343,6 +349,9 @@ export interface Database {
           features?: Json;
           is_active?: boolean;
           sort_order?: number;
+          booking_limit?: number;
+          overage_enabled?: boolean;
+          overage_price?: number;
           updated_at?: string;
         };
         Relationships: [];
@@ -363,6 +372,7 @@ export interface Database {
           trial_ends_at: string | null;
           cancelled_at: string | null;
           cancel_reason: string | null;
+          bookings_this_cycle: number;
           created_at: string;
           updated_at: string;
         };
@@ -379,6 +389,7 @@ export interface Database {
           trial_ends_at?: string | null;
           cancelled_at?: string | null;
           cancel_reason?: string | null;
+          bookings_this_cycle?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -395,6 +406,7 @@ export interface Database {
           trial_ends_at?: string | null;
           cancelled_at?: string | null;
           cancel_reason?: string | null;
+          bookings_this_cycle?: number;
           updated_at?: string;
         };
         Relationships: [];
@@ -532,6 +544,37 @@ export interface Database {
         Relationships: [];
       };
 
+      // ── 9b. booking_status_history ──
+      booking_status_history: {
+        Row: {
+          id: string;
+          booking_id: string;
+          old_status: string;
+          new_status: string;
+          changed_by: string | null;
+          reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          old_status: string;
+          new_status: string;
+          changed_by?: string | null;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          old_status?: string;
+          new_status?: string;
+          changed_by?: string | null;
+          reason?: string | null;
+        };
+        Relationships: [];
+      };
+
       // ── 10. calendar_blocks ──
       calendar_blocks: {
         Row: {
@@ -541,6 +584,9 @@ export interface Database {
           start_date: string;
           end_date: string;
           reason: string | null;
+          booking_id: string | null;
+          status: string;
+          source: string;
           created_at: string;
         };
         Insert: {
@@ -550,6 +596,9 @@ export interface Database {
           start_date: string;
           end_date: string;
           reason?: string | null;
+          booking_id?: string | null;
+          status?: string;
+          source?: string;
           created_at?: string;
         };
         Update: {
@@ -559,6 +608,9 @@ export interface Database {
           start_date?: string;
           end_date?: string;
           reason?: string | null;
+          booking_id?: string | null;
+          status?: string;
+          source?: string;
         };
         Relationships: [];
       };

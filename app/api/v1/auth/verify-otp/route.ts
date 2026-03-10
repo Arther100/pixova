@@ -155,37 +155,37 @@ export async function POST(request: NextRequest) {
       await createTrialSubscription(photographer.id);
     }
 
-    // ── Enforce session limit ──
-    const sessionLimit = await getSessionLimit(photographer.id);
-    await enforceSessionLimit(photographer.id, sessionLimit);
-
-    // ── Create active session ──
-    await createActiveSession(photographer.id, request);
-
-    // ── Update last_login_at ──
-    await supabase
-      .from("photographers")
-      .update({ last_login_at: new Date().toISOString() })
-      .eq("id", photographer.id);
-
     // ── Determine redirect ──
     const needsOnboarding = isNewUser || !photographer.is_onboarded;
     const redirectTo = needsOnboarding ? "/onboarding" : "/dashboard";
 
-    // ── Create long-lived JWT session token ──
-    // We return it in the JSON body. The login page (same origin)
-    // sets it as a cookie via document.cookie, then navigates.
-    // This is the only approach that works reliably everywhere,
-    // including VS Code Simple Browser (iframe sandbox).
-    const sessionToken = await createSessionToken({
-      photographerId: photographer.id,
-      authId: authUserId,
-      phone: normalizedPhone,
-    });
+    // ── Run independent operations in parallel for speed ──
+    const [sessionLimit, sessionToken] = await Promise.all([
+      getSessionLimit(photographer.id),
+      createSessionToken({
+        photographerId: photographer.id,
+        authId: authUserId,
+        phone: normalizedPhone,
+      }),
+      // Fire-and-forget: update last_login_at (no need to await result)
+      supabase
+        .from("photographers")
+        .update({ last_login_at: new Date().toISOString() })
+        .eq("id", photographer.id),
+    ]);
+
+    // Enforce + create session (depends on sessionLimit)
+    await Promise.all([
+      enforceSessionLimit(photographer.id, sessionLimit),
+      createActiveSession(photographer.id, request),
+    ]);
 
     console.log(`[verify-otp] ✅ Session token created for ${normalizedPhone} → ${redirectTo}`);
 
-    return NextResponse.json(
+    // ── Build response with pixova_onboarded cookie ──
+    // Setting this cookie here eliminates the middleware DB lookup
+    // on the very first page load after login, making it much faster.
+    const response = NextResponse.json(
       {
         success: true,
         data: {
@@ -196,6 +196,16 @@ export async function POST(request: NextRequest) {
       },
       { status: 200 }
     );
+
+    response.cookies.set("pixova_onboarded", needsOnboarding ? "0" : "1", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60,
+      path: "/",
+    });
+
+    return response;
   } catch (err) {
     console.error("[verify-otp] Unexpected error:", err);
     return serverErrorResponse();

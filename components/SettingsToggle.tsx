@@ -7,7 +7,7 @@ import { useState, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
 
 // Pages that use the photographer layout (which has its own settings in profile dropdown)
-const PHOTOGRAPHER_ROUTES = ["/dashboard", "/bookings", "/galleries", "/clients", "/payments", "/settings"];
+const PHOTOGRAPHER_ROUTES = ["/dashboard", "/bookings", "/calendar", "/galleries", "/clients", "/payments", "/settings"];
 
 /** Floating settings button — theme toggle + language picker + color picker.
  *  Hidden on photographer pages where the layout header has its own profile menu. */

@@ -56,6 +56,14 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+  /* Hide scrollbar for iOS-style wheel pickers */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
 /* Custom select dropdown arrow */

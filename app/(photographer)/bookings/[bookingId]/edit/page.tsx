@@ -63,10 +63,28 @@ export default function EditBookingPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
-          <p className="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+      <div className="animate-pulse space-y-6">
+        <div className="h-4 w-64 rounded bg-gray-200 dark:bg-gray-800" />
+        <div className="h-7 w-36 rounded-lg bg-gray-200 dark:bg-gray-800" />
+        <div className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
+          <div>
+            <div className="h-5 w-28 rounded bg-gray-200 dark:bg-gray-800" />
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="h-10 rounded-xl bg-gray-100 dark:bg-gray-800/60" />
+              <div className="h-10 rounded-xl bg-gray-100 dark:bg-gray-800/60" />
+            </div>
+          </div>
+          <div>
+            <div className="h-5 w-24 rounded bg-gray-200 dark:bg-gray-800" />
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div className="h-10 rounded-xl bg-gray-100 dark:bg-gray-800/60" />
+              <div className="h-10 rounded-xl bg-gray-100 dark:bg-gray-800/60" />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 border-t border-gray-200 pt-6 dark:border-gray-700">
+            <div className="h-10 w-20 rounded-xl bg-gray-200 dark:bg-gray-800" />
+            <div className="h-10 w-32 rounded-xl bg-gray-200 dark:bg-gray-800" />
+          </div>
         </div>
       </div>
     );
@@ -115,7 +133,7 @@ export default function EditBookingPage() {
       </div>
 
       {/* Form */}
-      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
+      <div className="rounded-xl border border-gray-200 bg-white p-5 sm:p-6 lg:p-8 dark:border-gray-700 dark:bg-gray-900">
         <BookingForm
           mode="edit"
           bookingId={bookingId}

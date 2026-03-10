@@ -72,50 +72,47 @@ export async function GET() {
           .eq("read", false),
       ]);
 
-    // ── Resolve plan details ──
+    // ── Resolve plan, bookings used, and packages in parallel ──
+    const planPromise = subscriptionRes.data?.plan_id
+      ? admin.from("plans").select("name, tier, slug").eq("id", subscriptionRes.data.plan_id).single()
+      : Promise.resolve({ data: null });
+
+    const bookingsUsedPromise = subscriptionRes.data?.current_period_start
+      ? admin
+          .from("bookings")
+          .select("id", { count: "exact", head: true })
+          .eq("photographer_id", photographer.id)
+          .gte("created_at", subscriptionRes.data.current_period_start)
+      : Promise.resolve({ count: 0 });
+
+    const hasPackagesPromise = studioRes.data?.id
+      ? admin
+          .from("studio_packages")
+          .select("id", { count: "exact", head: true })
+          .eq("studio_id", studioRes.data.id)
+      : Promise.resolve({ count: 0 });
+
+    const [planRes, bookingsUsedRes, packagesRes] = await Promise.all([
+      planPromise,
+      bookingsUsedPromise,
+      hasPackagesPromise,
+    ]);
+
     let planName = "Starter";
     let bookingsLimit = 10;
 
-    if (subscriptionRes.data?.plan_id) {
-      const { data: plan } = await admin
-        .from("plans")
-        .select("name, tier, slug")
-        .eq("id", subscriptionRes.data.plan_id)
-        .single();
-
-      if (plan) {
-        planName = plan.name;
-        const planConfig =
-          SUBSCRIPTION_PLANS[plan.slug as keyof typeof SUBSCRIPTION_PLANS];
-        if (planConfig) {
-          // maxGalleries as proxy for bookings limit
-          bookingsLimit = planConfig.maxGalleries;
-        }
+    if (planRes.data) {
+      const plan = planRes.data as { name: string; tier: string; slug: string };
+      planName = plan.name;
+      const planConfig =
+        SUBSCRIPTION_PLANS[plan.slug as keyof typeof SUBSCRIPTION_PLANS];
+      if (planConfig) {
+        bookingsLimit = planConfig.maxGalleries;
       }
     }
 
-    // ── Count bookings this billing cycle ──
-    let bookingsUsed = 0;
-    if (subscriptionRes.data?.current_period_start) {
-      const { count } = await admin
-        .from("bookings")
-        .select("id", { count: "exact", head: true })
-        .eq("photographer_id", photographer.id)
-        .gte("created_at", subscriptionRes.data.current_period_start);
-
-      bookingsUsed = count ?? 0;
-    }
-
-    // ── Check if has packages ──
-    let hasPackages = false;
-    if (studioRes.data?.id) {
-      const { count: pkgCount } = await admin
-        .from("studio_packages")
-        .select("id", { count: "exact", head: true })
-        .eq("studio_id", studioRes.data.id);
-
-      hasPackages = (pkgCount ?? 0) > 0;
-    }
+    const bookingsUsed = bookingsUsedRes.count ?? 0;
+    const hasPackages = (packagesRes.count ?? 0) > 0;
 
     // ── Calculate profile score ──
     const profileScore = calculateProfileScore({
@@ -159,7 +156,7 @@ export async function GET() {
         unreadNotifications: notificationsRes.count ?? 0,
       },
       profileScore,
-    });
+    }, 200, "medium");
   } catch (err) {
     console.error("[dashboard] Unexpected error:", err);
     return serverErrorResponse();

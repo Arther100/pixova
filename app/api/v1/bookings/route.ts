@@ -3,7 +3,7 @@
 // POST /api/v1/bookings — Create a new booking
 // ============================================
 
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSessionFromCookie } from "@/lib/session";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import {
@@ -91,11 +91,35 @@ export async function GET(request: NextRequest) {
     const ascending = filters.sortOrder === "asc";
     query = query.order(sortColumn, { ascending }).range(offset, offset + filters.limit - 1);
 
-    const { data, error, count } = await query;
+    // Run bookings query and quota query in parallel
+    const [bookingsResult, subResult] = await Promise.all([
+      query,
+      supabase
+        .from("subscriptions")
+        .select("id, bookings_this_cycle, current_period_end, plan_id")
+        .eq("photographer_id", session.photographerId)
+        .in("status", ["active", "trialing"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    const { data, error, count } = bookingsResult;
 
     if (error) {
       console.error("[GET /bookings] DB error:", error.message);
       return serverErrorResponse("Failed to fetch bookings");
+    }
+
+    const subData = subResult.data;
+    let quotaLimit = -1;
+    if (subData?.plan_id) {
+      const { data: quotaPlan } = await supabase
+        .from("plans")
+        .select("booking_limit")
+        .eq("id", subData.plan_id)
+        .single();
+      quotaLimit = quotaPlan?.booking_limit ?? -1;
     }
 
     return successResponse({
@@ -104,6 +128,11 @@ export async function GET(request: NextRequest) {
       page: filters.page,
       limit: filters.limit,
       hasMore: (count || 0) > offset + filters.limit,
+      quota: {
+        used: subData?.bookings_this_cycle ?? 0,
+        limit: quotaLimit,
+        resetDate: subData?.current_period_end ?? null,
+      },
     });
   } catch (err) {
     console.error("[GET /bookings] Unexpected error:", err);
@@ -149,6 +178,77 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createSupabaseAdmin();
+
+    // --- QUOTA CHECK ---
+    const { data: subscription } = await supabase
+      .from("subscriptions")
+      .select("id, bookings_this_cycle, status, plan_id")
+      .eq("photographer_id", session.photographerId)
+      .in("status", ["active", "trialing"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!subscription) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "SUBSCRIPTION_INACTIVE",
+            message:
+              "Your subscription is inactive. Please reactivate to add bookings.",
+          },
+        },
+        { status: 403 }
+      );
+    }
+
+    const { data: plan } = await supabase
+      .from("plans")
+      .select("booking_limit, overage_enabled, overage_price")
+      .eq("id", subscription.plan_id)
+      .single();
+
+    const bookingLimit = plan?.booking_limit ?? -1;
+    const usedCount = subscription.bookings_this_cycle ?? 0;
+
+    // -1 = unlimited (Studio plan)
+    if (bookingLimit !== -1 && usedCount >= bookingLimit) {
+      if (plan?.overage_enabled) {
+        if (!data.confirmOverage) {
+          const overageRupees = Math.round((plan.overage_price ?? 0) / 100);
+          return NextResponse.json(
+            {
+              success: false,
+              error: {
+                code: "OVERAGE_REQUIRED",
+                message: `You have used all ${bookingLimit} bookings this cycle. This booking costs ₹${overageRupees} extra.`,
+                requiresOverage: true,
+                overageAmount: plan.overage_price,
+                used: usedCount,
+                limit: bookingLimit,
+              },
+            },
+            { status: 402 }
+          );
+        }
+      } else {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: "QUOTA_EXCEEDED",
+              message: `You have reached your ${bookingLimit} booking limit for this cycle. Upgrade your plan to add more.`,
+              used: usedCount,
+              limit: bookingLimit,
+            },
+          },
+          { status: 429 }
+        );
+      }
+    }
+    // --- END QUOTA CHECK ---
+
     const phone = normalizePhone(data.clientMobile);
 
     // ── Check event_date conflicts with calendar_blocks ──
@@ -259,6 +359,32 @@ export async function POST(request: NextRequest) {
       console.error("[POST /bookings] Insert error:", bookingError?.message);
       return serverErrorResponse("Failed to create booking");
     }
+
+    // --- WRITE CALENDAR BLOCK ---
+    if (booking && data.eventDate) {
+      const bookingRecord = booking as Record<string, unknown>;
+      await supabase.from("calendar_blocks").insert({
+        photographer_id: session.photographerId,
+        title: data.title,
+        start_date: data.eventDate,
+        end_date: data.eventEndDate || data.eventDate,
+        status: "ENQUIRY",
+        source: "BOOKING",
+        booking_id: bookingRecord.id as string,
+      });
+    }
+    // --- END CALENDAR BLOCK ---
+
+    // --- INCREMENT QUOTA COUNTER ---
+    if (subscription) {
+      await supabase
+        .from("subscriptions")
+        .update({
+          bookings_this_cycle: (subscription.bookings_this_cycle ?? 0) + 1,
+        })
+        .eq("id", subscription.id);
+    }
+    // --- END INCREMENT QUOTA ---
 
     return successResponse(booking, 201);
   } catch (err) {

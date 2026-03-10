@@ -150,6 +150,50 @@ export interface BookingWithClient {
   };
 }
 
+// ---------- Calendar ----------
+export interface CalendarBlockEnriched {
+  block_id: string;
+  block_date: string; // YYYY-MM-DD (start_date)
+  end_date: string; // YYYY-MM-DD
+  status: string; // BOOKED / ENQUIRY / BLOCKED
+  source: string; // BOOKING / MANUAL
+  booking_id: string | null;
+  booking_ref: string | null;
+  client_name: string | null;
+  event_type: string | null;
+  notes: string | null; // reason field
+}
+
+export interface CalendarMonthResponse {
+  year: number;
+  month: number;
+  blocks: CalendarBlockEnriched[];
+}
+
+export interface PublicAvailabilityResponse {
+  studio_slug: string;
+  from_date: string;
+  to_date: string;
+  dates: Record<string, "FREE" | "BOOKED" | "ENQUIRY">;
+}
+
+export interface DateCheckResponse {
+  date: string;
+  available: boolean;
+  status: "FREE" | "BOOKED" | "ENQUIRY" | "BLOCKED";
+}
+
+export interface BlockDatesPayload {
+  date: string; // YYYY-MM-DD
+  end_date?: string; // YYYY-MM-DD
+  notes?: string; // max 200 chars
+}
+
+export interface BlockDatesResponse {
+  blocked: number;
+  dates: string[];
+}
+
 // ---------- Payment ----------
 export interface CreatePaymentOrderPayload {
   amount: number; // in paise

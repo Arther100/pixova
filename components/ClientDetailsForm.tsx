@@ -6,6 +6,7 @@
 "use client";
 
 import { formatPhone } from "@/utils/phone";
+import { useI18n } from "@/lib/i18n";
 
 interface ClientDetailsFormProps {
   client: {
@@ -20,10 +21,11 @@ interface ClientDetailsFormProps {
 }
 
 export function ClientDetailsForm({ client }: ClientDetailsFormProps) {
+  const { t } = useI18n();
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
       <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">
-        Client Details
+        {t.clients.clientDetails}
       </h3>
 
       <div className="space-y-3">
@@ -52,7 +54,7 @@ export function ClientDetailsForm({ client }: ClientDetailsFormProps) {
         {/* Phone */}
         <div className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800">
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Phone</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t.clients.phone}</p>
             <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
               {formatPhone(client.phone)}
             </p>
@@ -72,7 +74,7 @@ export function ClientDetailsForm({ client }: ClientDetailsFormProps) {
         {client.whatsapp && (
           <div className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800">
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">WhatsApp</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t.clients.whatsapp}</p>
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 {formatPhone(client.whatsapp)}
               </p>

@@ -5,6 +5,8 @@
 
 "use client";
 
+import { useI18n } from "@/lib/i18n";
+
 interface ProfileCompletionBarProps {
   score: number;
   showLabel?: boolean;
@@ -16,6 +18,8 @@ export function ProfileCompletionBar({
   showLabel = true,
   size = "md",
 }: ProfileCompletionBarProps) {
+  const { t } = useI18n();
+
   const getColor = () => {
     if (score >= 80) return "bg-green-500";
     if (score >= 50) return "bg-amber-500";
@@ -29,7 +33,7 @@ export function ProfileCompletionBar({
       {showLabel && (
         <div className="mb-1.5 flex items-center justify-between">
           <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-            Profile Completion
+            {t.dashboard.profileCompletion}
           </span>
           <span
             className={`text-sm font-semibold ${

@@ -6,6 +6,7 @@
 "use client";
 
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n";
 import { ProfileCompletionBar } from "./ProfileCompletionBar";
 
 export interface DashboardData {
@@ -39,10 +40,11 @@ interface DashboardWelcomeProps {
 }
 
 export function DashboardWelcome({ data }: DashboardWelcomeProps) {
+  const { t } = useI18n();
   const { photographer, studio, subscription, stats, profileScore } = data;
 
   const firstName = photographer.fullName?.split(" ")[0] || "there";
-  const greeting = getGreeting();
+  const greeting = getGreeting(t);
 
   return (
     <div className="space-y-6">
@@ -53,8 +55,8 @@ export function DashboardWelcome({ data }: DashboardWelcomeProps) {
         </h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           {studio
-            ? `Here's what's happening at ${studio.name}`
-            : "Set up your studio to get started"}
+            ? `${t.dashboard.studioOverview} ${studio.name}`
+            : t.dashboard.setupStudio}
         </p>
       </div>
 
@@ -67,10 +69,10 @@ export function DashboardWelcome({ data }: DashboardWelcomeProps) {
             </div>
             <div>
               <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                Free trial active
+                {t.dashboard.trialActive}
               </p>
               <p className="text-xs text-amber-600 dark:text-amber-400">
-                Your trial ends on{" "}
+                {t.dashboard.trialEnds}{" "}
                 {new Date(subscription.trialEndsAt).toLocaleDateString("en-IN", {
                   day: "numeric",
                   month: "long",
@@ -85,7 +87,7 @@ export function DashboardWelcome({ data }: DashboardWelcomeProps) {
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard
-          label="Total Bookings"
+          label={t.dashboard.totalBookings}
           value={stats.totalBookings.toString()}
           href="/bookings"
           iconBg="bg-blue-50 dark:bg-blue-900/30"
@@ -94,7 +96,7 @@ export function DashboardWelcome({ data }: DashboardWelcomeProps) {
           }
         />
         <StatCard
-          label="Pending Enquiries"
+          label={t.dashboard.pendingEnquiries}
           value={stats.pendingEnquiries.toString()}
           href="/bookings"
           iconBg="bg-orange-50 dark:bg-orange-900/30"
@@ -103,7 +105,7 @@ export function DashboardWelcome({ data }: DashboardWelcomeProps) {
           }
         />
         <StatCard
-          label="Notifications"
+          label={t.dashboard.notifications}
           value={stats.unreadNotifications.toString()}
           iconBg="bg-amber-50 dark:bg-amber-900/30"
           icon={
@@ -111,7 +113,7 @@ export function DashboardWelcome({ data }: DashboardWelcomeProps) {
           }
         />
         <StatCard
-          label="Bookings Quota"
+          label={t.dashboard.bookingsQuota}
           value={
             subscription
               ? `${subscription.bookingsUsed}/${subscription.bookingsLimit === -1 ? "∞" : subscription.bookingsLimit}`
@@ -130,12 +132,12 @@ export function DashboardWelcome({ data }: DashboardWelcomeProps) {
         <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
           <ProfileCompletionBar score={profileScore} />
           <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            Complete your profile to attract more clients.{" "}
+            {t.dashboard.completeProfile}{" "}
             <Link
               href="/settings"
               className="font-medium text-brand-600 hover:underline dark:text-brand-400"
             >
-              Update Profile →
+              {t.dashboard.updateProfile}
             </Link>
           </p>
         </div>
@@ -144,25 +146,25 @@ export function DashboardWelcome({ data }: DashboardWelcomeProps) {
       {/* Quick actions */}
       <div>
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-          Quick Actions
+          {t.dashboard.quickActions}
         </h2>
         <div className="grid grid-cols-3 gap-3">
           <QuickAction
-            label="New Booking"
+            label={t.dashboard.newBooking}
             href="/bookings/new"
             icon={
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="M12 14v4M10 16h4" /></svg>
             }
           />
           <QuickAction
-            label="View Calendar"
+            label={t.dashboard.viewCalendar}
             href="/bookings"
             icon={
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01" /></svg>
             }
           />
           <QuickAction
-            label="Share Profile"
+            label={t.dashboard.shareProfile}
             href={studio ? `/${studio.slug}` : "/settings"}
             external={!!studio}
             icon={
@@ -251,9 +253,9 @@ function QuickAction({
 }
 
 // ── Greeting by time of day ──
-function getGreeting(): string {
+function getGreeting(t: { dashboard: { goodMorning: string; goodAfternoon: string; goodEvening: string } }): string {
   const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
+  if (hour < 12) return t.dashboard.goodMorning;
+  if (hour < 17) return t.dashboard.goodAfternoon;
+  return t.dashboard.goodEvening;
 }

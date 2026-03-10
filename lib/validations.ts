@@ -93,6 +93,7 @@ export const createBookingSchema = z.object({
   notes: z.string().max(2000).optional(),
   internalNotes: z.string().max(2000).optional(),
   teamMembers: z.array(z.string().max(100)).max(20).optional(),
+  confirmOverage: z.boolean().optional(),
 });
 
 export const updateBookingSchema = z.object({

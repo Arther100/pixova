@@ -62,3 +62,11 @@ export async function POST(request: NextRequest) {
     return serverErrorResponse();
   }
 }
+
+// GET /api/v1/auth/logout — browser-friendly logout (redirects to /login)
+export async function GET() {
+  const res = NextResponse.redirect(new URL("/login", process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"));
+  res.cookies.set("pixova_session", "", { path: "/", maxAge: 0 });
+  res.cookies.set("pixova_onboarded", "", { path: "/", maxAge: 0 });
+  return res;
+}

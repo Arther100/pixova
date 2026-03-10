@@ -5,19 +5,23 @@
 
 "use client";
 
-const STEPS = [
-  { key: "enquiry", label: "Enquiry" },
-  { key: "confirmed", label: "Confirmed" },
-  { key: "in_progress", label: "In Progress" },
-  { key: "delivered", label: "Delivered" },
-  { key: "completed", label: "Completed" },
-];
+import { useI18n } from "@/lib/i18n";
 
 interface BookingTimelineProps {
   currentStatus: string;
 }
 
 export function BookingTimeline({ currentStatus }: BookingTimelineProps) {
+  const { t } = useI18n();
+
+  const STEPS = [
+    { key: "enquiry", label: t.bookings.statusEnquiry },
+    { key: "confirmed", label: t.bookings.statusConfirmed },
+    { key: "in_progress", label: t.bookings.statusInProgress },
+    { key: "delivered", label: t.bookings.statusDelivered },
+    { key: "completed", label: t.bookings.statusCompleted },
+  ];
+
   const isCancelled = currentStatus === "cancelled";
   const currentIndex = STEPS.findIndex((s) => s.key === currentStatus);
 
@@ -30,8 +34,8 @@ export function BookingTimeline({ currentStatus }: BookingTimelineProps) {
           </svg>
         </div>
         <div>
-          <p className="text-sm font-medium text-red-700 dark:text-red-300">Booking Cancelled</p>
-          <p className="text-xs text-red-600/70 dark:text-red-400/70">This booking is no longer active</p>
+          <p className="text-sm font-medium text-red-700 dark:text-red-300">{t.bookings.cancelledTitle}</p>
+          <p className="text-xs text-red-600/70 dark:text-red-400/70">{t.bookings.noLongerActive}</p>
         </div>
       </div>
     );

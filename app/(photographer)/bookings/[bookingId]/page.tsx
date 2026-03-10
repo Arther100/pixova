@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n";
 import { BookingStatusBadge } from "@/components/BookingStatusBadge";
 import { BookingTimeline } from "@/components/BookingTimeline";
 import { ClientDetailsForm } from "@/components/ClientDetailsForm";
@@ -16,23 +17,6 @@ import { Input } from "@/components/ui";
 import { formatRupees, paiseToRupees, rupeesToPaise } from "@/utils/currency";
 import { formatDate, formatDateTime } from "@/utils/date";
 
-// ── Status transitions UI ──
-const NEXT_ACTIONS: Record<string, { label: string; status: string; variant: "primary" | "secondary" }[]> = {
-  enquiry: [
-    { label: "Confirm Booking", status: "confirmed", variant: "primary" },
-  ],
-  confirmed: [
-    { label: "Start Work", status: "in_progress", variant: "primary" },
-  ],
-  in_progress: [
-    { label: "Mark Delivered", status: "delivered", variant: "primary" },
-  ],
-  delivered: [
-    { label: "Mark Completed", status: "completed", variant: "primary" },
-  ],
-  completed: [],
-  cancelled: [],
-};
 
 interface BookingDetail {
   id: string;
@@ -78,6 +62,16 @@ const bookingCache = new Map<string, BookingDetail>();
 export default function BookingDetailPage() {
   const params = useParams();
   const bookingId = params.bookingId as string;
+  const { t } = useI18n();
+
+  const NEXT_ACTIONS: Record<string, { label: string; status: string; variant: "primary" | "secondary" }[]> = {
+    enquiry: [{ label: t.bookings.confirmBooking, status: "confirmed", variant: "primary" }],
+    confirmed: [{ label: t.bookings.startWork, status: "in_progress", variant: "primary" }],
+    in_progress: [{ label: t.bookings.markDelivered, status: "delivered", variant: "primary" }],
+    delivered: [{ label: t.bookings.markCompleted, status: "completed", variant: "primary" }],
+    completed: [],
+    cancelled: [],
+  };
 
   const [booking, setBooking] = useState<BookingDetail | null>(bookingCache.get(bookingId) || null);
   const [loading, setLoading] = useState(!bookingCache.has(bookingId));
@@ -154,7 +148,7 @@ export default function BookingDetailPage() {
   async function handleRecordPayment() {
     const amountPaise = rupeesToPaise(parseFloat(paymentAmount));
     if (!paymentAmount || isNaN(amountPaise) || amountPaise < 100) {
-      setStatusError("Minimum payment is ₹1");
+      setStatusError(t.bookings.minPayment);
       setTimeout(() => setStatusError(null), 3000);
       return;
     }
@@ -176,7 +170,7 @@ export default function BookingDetailPage() {
       const json = await res.json();
 
       if (!res.ok || !json.success) {
-        setStatusError(json.error || "Failed to record payment");
+        setStatusError(json.error || t.bookings.failedPayment);
         setTimeout(() => setStatusError(null), 4000);
         return;
       }
@@ -210,7 +204,7 @@ export default function BookingDetailPage() {
       setStatusSuccess(`Payment of ₹${parseFloat(paymentAmount).toLocaleString("en-IN")} recorded!`);
       setTimeout(() => setStatusSuccess(null), 3000);
     } catch {
-      setStatusError("Network error. Please try again.");
+      setStatusError(t.bookings.networkError);
       setTimeout(() => setStatusError(null), 4000);
     } finally {
       setPaymentLoading(false);
@@ -228,7 +222,7 @@ export default function BookingDetailPage() {
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
-        setStatusError(json.error || "Failed to update status");
+        setStatusError(json.error || t.bookings.failedStatus);
         setTimeout(() => setStatusError(null), 4000);
         return;
       }
@@ -239,16 +233,16 @@ export default function BookingDetailPage() {
 
       // Show success feedback
       const labels: Record<string, string> = {
-        confirmed: "Booking confirmed!",
-        in_progress: "Work started!",
-        delivered: "Marked as delivered!",
-        completed: "Booking completed!",
-        cancelled: "Booking cancelled",
+        confirmed: t.bookings.bookingConfirmed,
+        in_progress: t.bookings.workStarted,
+        delivered: t.bookings.markedDelivered,
+        completed: t.bookings.bookingCompleted,
+        cancelled: t.bookings.bookingCancelled,
       };
-      setStatusSuccess(labels[newStatus] || "Status updated!");
+      setStatusSuccess(labels[newStatus] || t.bookings.statusUpdated);
       setTimeout(() => setStatusSuccess(null), 3000);
     } catch {
-      setStatusError("Network error. Please try again.");
+      setStatusError(t.bookings.networkError);
       setTimeout(() => setStatusError(null), 4000);
     } finally {
       setStatusLoading(false);
@@ -257,10 +251,28 @@ export default function BookingDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
-          <p className="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+      <div className="animate-pulse space-y-6">
+        <div className="h-4 w-48 rounded bg-gray-200 dark:bg-gray-800" />
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-3">
+            <div className="h-8 w-8 rounded-lg bg-gray-200 dark:bg-gray-800" />
+            <div>
+              <div className="h-7 w-48 rounded-lg bg-gray-200 dark:bg-gray-800" />
+              <div className="mt-2 h-4 w-64 rounded bg-gray-100 dark:bg-gray-800/60" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <div className="h-9 w-16 rounded-lg bg-gray-200 dark:bg-gray-800" />
+            <div className="h-9 w-20 rounded-lg bg-gray-200 dark:bg-gray-800" />
+          </div>
+        </div>
+        <div className="h-16 rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900" />
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="space-y-6 lg:col-span-2">
+            <div className="h-48 rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900" />
+            <div className="h-32 rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900" />
+          </div>
+          <div className="h-64 rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900" />
         </div>
       </div>
     );
@@ -271,10 +283,10 @@ export default function BookingDetailPage() {
       <div className="flex flex-col items-center justify-center py-20">
         <span className="text-4xl">⚠️</span>
         <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-          {error || "Booking not found"}
+          {error || t.bookings.bookingNotFound}
         </p>
         <Link href="/bookings" className="mt-4">
-          <Button variant="secondary">Back to Bookings</Button>
+          <Button variant="secondary">{t.bookings.backToBookings}</Button>
         </Link>
       </div>
     );
@@ -311,7 +323,7 @@ export default function BookingDetailPage() {
       {/* ── Breadcrumb ── */}
       <nav className="mb-6 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
         <Link href="/bookings" prefetch={true} className="hover:text-brand-600 dark:hover:text-brand-400">
-          Bookings
+          {t.bookings.title}
         </Link>
         <span>/</span>
         <span className="text-gray-900 dark:text-gray-100">
@@ -349,17 +361,17 @@ export default function BookingDetailPage() {
                   {booking.event_type}
                 </span>
               )}
-              <span>Created {formatDateTime(booking.created_at)}</span>
+              <span>{t.bookings.created} {formatDateTime(booking.created_at)}</span>
             </div>
           </div>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex items-center gap-2">
+        {/* Action buttons — always right-aligned */}
+        <div className="flex items-center justify-end gap-2 sm:shrink-0">
           {canEdit && (
             <Link href={`/bookings/${booking.id}/edit`}>
               <Button variant="secondary" size="sm">
-                Edit
+                {t.bookings.edit}
               </Button>
             </Link>
           )}
@@ -399,42 +411,42 @@ export default function BookingDetailPage() {
           {/* Event details */}
           <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
             <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">
-              Event Details
+              {t.bookings.eventDetails}
             </h3>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-3">
               {booking.event_date && (
                 <InfoRow
-                  label="Event Date"
+                  label={t.bookings.eventDate}
                   value={formatDate(booking.event_date)}
                 />
               )}
               {booking.event_end_date && (
                 <InfoRow
-                  label="End Date"
+                  label={t.bookings.endDate}
                   value={formatDate(booking.event_end_date)}
                 />
               )}
               {booking.event_time && (
-                <InfoRow label="Time" value={booking.event_time} />
+                <InfoRow label={t.bookings.time} value={booking.event_time} />
               )}
               {booking.venue && (
-                <InfoRow label="Venue" value={booking.venue} />
+                <InfoRow label={t.bookings.venue} value={booking.venue} />
               )}
               {booking.venue_address && (
-                <InfoRow label="Address" value={booking.venue_address} />
+                <InfoRow label={t.bookings.address} value={booking.venue_address} />
               )}
               {booking.city && (
-                <InfoRow label="City" value={booking.city} />
+                <InfoRow label={t.bookings.city} value={booking.city} />
               )}
               {booking.package && (
                 <InfoRow
-                  label="Package"
+                  label={t.bookings.packageLabel}
                   value={`${booking.package.name} — ${formatRupees(booking.package.price)}`}
                 />
               )}
               {booking.team_members.length > 0 && (
                 <InfoRow
-                  label="Team"
+                  label={t.bookings.team}
                   value={booking.team_members.join(", ")}
                 />
               )}
@@ -445,7 +457,7 @@ export default function BookingDetailPage() {
           <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                Payment Summary
+                {t.bookings.paymentSummary}
               </h3>
               {booking.status !== "cancelled" && (
                 <button
@@ -461,28 +473,28 @@ export default function BookingDetailPage() {
                   <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                   </svg>
-                  Record Payment
+                  {t.bookings.recordPayment}
                 </button>
               )}
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <FinanceCard
-                label="Total Amount"
+                label={t.bookings.totalAmount}
                 value={formatRupees(booking.total_amount)}
                 variant="default"
               />
               <FinanceCard
-                label="Advance Expected"
+                label={t.bookings.advanceExpected}
                 value={formatRupees(booking.advance_amount)}
                 variant="default"
               />
               <FinanceCard
-                label="Paid"
+                label={t.bookings.paid}
                 value={formatRupees(booking.paid_amount)}
                 variant="success"
               />
               <FinanceCard
-                label="Balance Due"
+                label={t.bookings.balanceDue}
                 value={formatRupees(booking.balance_amount)}
                 variant={booking.balance_amount > 0 ? "warning" : "success"}
               />
@@ -496,8 +508,8 @@ export default function BookingDetailPage() {
                   <path d="M12 8v4M12 16h.01" />
                 </svg>
                 <p className="text-sm text-amber-700 dark:text-amber-300">
-                  <span className="font-medium">Extra paid:</span>{" "}
-                  {formatRupees(booking.paid_amount - booking.total_amount)} over total amount
+                  <span className="font-medium">{t.bookings.extraPaid}</span>{" "}
+                  {formatRupees(booking.paid_amount - booking.total_amount)} {t.bookings.overTotalAmount}
                 </p>
               </div>
             )}
@@ -508,7 +520,7 @@ export default function BookingDetailPage() {
                   <path d="M20 6 9 17l-5-5" />
                 </svg>
                 <p className="text-sm font-medium text-green-700 dark:text-green-300">
-                  Fully Paid
+                  {t.bookings.fullyPaid}
                 </p>
               </div>
             )}
@@ -517,7 +529,7 @@ export default function BookingDetailPage() {
             {payments.length > 0 && (
               <div className="mt-5 border-t border-gray-100 pt-4 dark:border-gray-800">
                 <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                  Payment History
+                  {t.bookings.paymentHistory}
                 </h4>
                 <div className="space-y-2">
                   {payments.map((p) => (
@@ -547,7 +559,7 @@ export default function BookingDetailPage() {
                       <div className="flex flex-col items-end gap-0.5">
                         {p.description && p.description.startsWith("Extra payment:") && (
                           <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                            Extra
+                            {t.bookings.extra}
                           </span>
                         )}
                         {(p.description && p.description.startsWith("Extra payment:")) && (
@@ -572,12 +584,12 @@ export default function BookingDetailPage() {
           {(booking.notes || booking.internal_notes) && (
             <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
               <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">
-                Notes
+                {t.bookings.notes}
               </h3>
               {booking.notes && (
                 <div className="mb-3">
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                    Client-facing notes
+                    {t.bookings.clientFacing}
                   </p>
                   <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
                     {booking.notes}
@@ -587,7 +599,7 @@ export default function BookingDetailPage() {
               {booking.internal_notes && (
                 <div>
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                    Internal notes (private)
+                    {t.bookings.internalNotes}
                   </p>
                   <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
                     {booking.internal_notes}
@@ -616,12 +628,12 @@ export default function BookingDetailPage() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Record Payment
+                  {t.bookings.recordPayment}
                 </h3>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {booking.balance_amount > 0
-                    ? `Balance due: ${formatRupees(booking.balance_amount)}`
-                    : "Fully paid — record extra payment"}
+                    ? `${t.bookings.balanceDueLabel} ${formatRupees(booking.balance_amount)}`
+                    : t.bookings.fullyPaidExtra}
                 </p>
               </div>
             </div>
@@ -633,7 +645,7 @@ export default function BookingDetailPage() {
                 return (
                   <div>
                     <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Amount (₹) *
+                      {t.bookings.amountLabel}
                     </label>
                     <input
                       type="number"
@@ -653,7 +665,7 @@ export default function BookingDetailPage() {
                     />
                     {!isOverpay && (
                       <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-                        Maximum: ₹{maxRupees.toLocaleString("en-IN")}
+                        {t.bookings.maximum} ₹{maxRupees.toLocaleString("en-IN")}
                       </p>
                     )}
                   </div>
@@ -662,23 +674,23 @@ export default function BookingDetailPage() {
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Payment Method *
+                  {t.bookings.paymentMethod}
                 </label>
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                   className="select-styled w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                 >
-                  <option value="upi">UPI</option>
-                  <option value="cash">Cash</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="cheque">Cheque</option>
-                  <option value="other">Other</option>
+                  <option value="upi">{t.bookings.upi}</option>
+                  <option value="cash">{t.bookings.cash}</option>
+                  <option value="bank_transfer">{t.bookings.bankTransfer}</option>
+                  <option value="cheque">{t.bookings.cheque}</option>
+                  <option value="other">{t.bookings.other}</option>
                 </select>
               </div>
 
               <Input
-                label="Payment Date"
+                label={t.bookings.paymentDate}
                 type="date"
                 value={paymentDate}
                 onChange={(e) => setPaymentDate(e.target.value)}
@@ -686,7 +698,7 @@ export default function BookingDetailPage() {
 
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Note (optional)
+                  {t.bookings.noteOptional}
                 </label>
                 <textarea
                   value={paymentNote}
@@ -718,13 +730,13 @@ export default function BookingDetailPage() {
                     className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
                   />
                   <span className="text-sm text-gray-700 dark:text-gray-300">
-                    Client is paying extra
+                    {t.bookings.payingExtra}
                   </span>
                 </label>
                 {isOverpay && (
                   <div className="mt-3">
                     <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
-                      Reason for extra payment *
+                      {t.bookings.extraReason}
                     </label>
                     <input
                       type="text"
@@ -752,7 +764,7 @@ export default function BookingDetailPage() {
                 }}
                 disabled={paymentLoading}
               >
-                Cancel
+                {t.cancel}
               </Button>
               <Button
                 size="sm"
@@ -760,7 +772,7 @@ export default function BookingDetailPage() {
                 disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || (isOverpay && !overpayReason.trim())}
                 onClick={handleRecordPayment}
               >
-                Record Payment
+                {t.bookings.recordPayment}
               </Button>
             </div>
           </div>
@@ -772,10 +784,10 @@ export default function BookingDetailPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-gray-900">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Cancel Booking
+              {t.bookings.cancelBooking}
             </h3>
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-              Please provide a reason for cancelling this booking.
+              {t.bookings.cancelReason}
             </p>
             <textarea
               value={cancelReason}
@@ -794,7 +806,7 @@ export default function BookingDetailPage() {
                 }}
                 disabled={statusLoading}
               >
-                Keep Booking
+                {t.bookings.keepBooking}
               </Button>
               <Button
                 variant="danger"
@@ -803,7 +815,7 @@ export default function BookingDetailPage() {
                 disabled={!cancelReason.trim()}
                 onClick={() => handleStatusChange("cancelled", cancelReason.trim())}
               >
-                Confirm Cancellation
+                {t.bookings.confirmCancellation}
               </Button>
             </div>
           </div>

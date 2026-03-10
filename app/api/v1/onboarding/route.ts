@@ -3,7 +3,7 @@
 // Creates studio_profile + packages, marks photographer onboarded
 // ============================================
 
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { getSessionFromCookie } from "@/lib/session";
@@ -191,12 +191,30 @@ export async function POST(request: NextRequest) {
       .update({ updated_at: new Date().toISOString() })
       .eq("id", studioProfile.id);
 
-    return successResponse({
-      studioId: studioProfile.id,
-      slug,
-      profileScore: score,
-      redirectTo: "/dashboard",
+    // Build response — must set pixova_onboarded cookie so middleware
+    // knows the user is onboarded and won't redirect back to /onboarding
+    const response = NextResponse.json(
+      {
+        success: true,
+        data: {
+          studioId: studioProfile.id,
+          slug,
+          profileScore: score,
+          redirectTo: "/dashboard",
+        },
+      },
+      { status: 200 }
+    );
+
+    response.cookies.set("pixova_onboarded", "1", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60, // 1 hour (middleware re-checks after expiry)
+      path: "/",
     });
+
+    return response;
   } catch (err) {
     console.error("[onboarding] unexpected error:", err);
     return serverErrorResponse();

@@ -93,6 +93,11 @@ export async function PUT(request: NextRequest, { params }: Params) {
       return errorResponse("Total amount cannot be changed after confirmation");
     }
 
+    // ── Lock event_date after CONFIRMED ──
+    if (data.eventDate !== undefined && lockedStatuses.includes(existing.status)) {
+      return errorResponse("Event date cannot be changed after confirmation");
+    }
+
     // ── Validate: advance ≤ total ──
     const newTotal = data.totalAmount ?? existing.total_amount;
     const newAdvance = data.advanceAmount ?? existing.advance_amount;
@@ -176,6 +181,23 @@ export async function PUT(request: NextRequest, { params }: Params) {
       return serverErrorResponse("Failed to update booking");
     }
 
+    // --- SYNC CALENDAR BLOCK on date/title change ---
+    const calendarPatch: Record<string, unknown> = {};
+    if (data.title !== undefined) calendarPatch.title = data.title;
+    if (data.eventDate !== undefined) calendarPatch.start_date = data.eventDate || null;
+    if (data.eventEndDate !== undefined) calendarPatch.end_date = data.eventEndDate || null;
+    // If start_date changed but end_date was not sent, keep end_date in sync
+    if (data.eventDate !== undefined && data.eventEndDate === undefined) {
+      calendarPatch.end_date = data.eventDate || null;
+    }
+    if (Object.keys(calendarPatch).length > 0) {
+      await supabase
+        .from("calendar_blocks")
+        .update(calendarPatch)
+        .eq("booking_id", bookingId);
+    }
+    // --- END SYNC CALENDAR BLOCK ---
+
     return successResponse(updated);
   } catch (err) {
     console.error("[PUT /bookings/:id] Unexpected error:", err);
@@ -225,6 +247,41 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
       console.error("[DELETE /bookings/:id] Cancel error:", cancelError?.message);
       return serverErrorResponse("Failed to cancel booking");
     }
+
+    // --- DELETE CALENDAR BLOCK ---
+    await supabase
+      .from("calendar_blocks")
+      .delete()
+      .eq("booking_id", bookingId);
+    // --- END DELETE CALENDAR BLOCK ---
+
+    // --- DECREMENT QUOTA ON CANCEL ---
+    const { data: sub } = await supabase
+      .from("subscriptions")
+      .select("id, bookings_this_cycle")
+      .eq("photographer_id", session.photographerId)
+      .in("status", ["active", "trialing"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (sub && (sub.bookings_this_cycle ?? 0) > 0) {
+      await supabase
+        .from("subscriptions")
+        .update({ bookings_this_cycle: sub.bookings_this_cycle - 1 })
+        .eq("id", sub.id);
+    }
+    // --- END DECREMENT QUOTA ---
+
+    // --- LOG STATUS HISTORY ---
+    await supabase.from("booking_status_history").insert({
+      booking_id: bookingId,
+      old_status: existing.status,
+      new_status: "cancelled",
+      changed_by: session.photographerId,
+      reason: "Cancelled via delete action",
+    });
+    // --- END STATUS HISTORY ---
 
     return successResponse({ message: "Booking cancelled", booking: cancelled });
   } catch (err) {

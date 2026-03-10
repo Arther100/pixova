@@ -8,6 +8,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { Button, Input } from "@/components/ui";
+import { useI18n } from "@/lib/i18n";
 
 interface OnboardingData {
   fullName: string;
@@ -109,6 +110,7 @@ export function OnboardingForm({
   onComplete,
   loading = false,
 }: OnboardingFormProps) {
+  const { t } = useI18n();
   const [step, setStepLocal] = useState(initialStep);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [slugChecking, setSlugChecking] = useState(false);
@@ -230,32 +232,31 @@ export function OnboardingForm({
 
       if (s === 1) {
         if (!form.fullName.trim())
-          errs.fullName = "Your name is required";
+          errs.fullName = t.onboarding.nameRequired;
         if (form.fullName.trim().length > 100)
-          errs.fullName = "Name must be under 100 characters";
+          errs.fullName = t.onboarding.nameMaxLength;
         if (!form.studioName.trim())
-          errs.studioName = "Studio name is required";
+          errs.studioName = t.onboarding.studioNameRequired;
         if (form.studioName.trim().length < 2)
-          errs.studioName = "Studio name must be at least 2 characters";
+          errs.studioName = t.onboarding.studioNameMinLength;
         if (form.studioName.trim().length > 50)
-          errs.studioName = "Studio name must be under 50 characters";
+          errs.studioName = t.onboarding.studioNameMaxLength;
         if (!form.studioSlug.trim())
-          errs.studioSlug = "Studio URL is required";
+          errs.studioSlug = t.onboarding.studioUrlRequired;
         if (!/^[a-z0-9-]+$/.test(form.studioSlug))
-          errs.studioSlug =
-            "Only lowercase letters, numbers, and hyphens allowed";
+          errs.studioSlug = t.onboarding.studioUrlInvalid;
         if (form.studioSlug.length < 3)
-          errs.studioSlug = "URL must be at least 3 characters";
-        if (!form.phone.trim()) errs.phone = "Phone is required";
+          errs.studioSlug = t.onboarding.studioUrlMinLength;
+        if (!form.phone.trim()) errs.phone = t.onboarding.phoneRequired;
         if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
-          errs.email = "Invalid email format";
+          errs.email = t.onboarding.emailInvalid;
       }
 
       if (s === 2) {
-        if (!form.city.trim()) errs.city = "City is required";
-        if (!form.state.trim()) errs.state = "State is required";
+        if (!form.city.trim()) errs.city = t.onboarding.cityRequired;
+        if (!form.state.trim()) errs.state = t.onboarding.stateRequired;
         if (form.specializations.length === 0)
-          errs.specializations = "Select at least one specialization";
+          errs.specializations = t.onboarding.specRequired;
       }
 
       setErrors(errs);
@@ -302,7 +303,7 @@ export function OnboardingForm({
           </div>
         ))}
         <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
-          {step === 1 ? "Studio Basics" : "Location & Skills"}
+          {step === 1 ? t.onboarding.studioBasicsLabel : t.onboarding.locationSkills}
         </span>
       </div>
 
@@ -310,7 +311,7 @@ export function OnboardingForm({
         // ── Step 1: Personal + Studio basics ──
         <div className="space-y-4">
           <Input
-            label="Your Full Name *"
+            label={t.onboarding.yourFullName}
             value={form.fullName}
             onChange={(e) => updateField("fullName", e.target.value)}
             placeholder="Rajesh Kumar"
@@ -318,7 +319,7 @@ export function OnboardingForm({
           />
 
           <Input
-            label="Studio Name *"
+            label={t.onboarding.studioNameLabel}
             value={form.studioName}
             onChange={(e) => handleStudioNameChange(e.target.value)}
             placeholder="Pixel Perfect Studios"
@@ -328,7 +329,7 @@ export function OnboardingForm({
 
           <div>
             <Input
-              label="Studio URL *"
+              label={t.onboarding.studioUrlLabel}
               value={form.studioSlug}
               onChange={(e) => {
                 updateField(
@@ -343,18 +344,18 @@ export function OnboardingForm({
               error={errors.studioSlug}
             />
             {slugChecking && (
-              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">Checking…</p>
+              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">{t.onboarding.slugChecking}</p>
             )}
             {slugAvailable === true && (
-              <p className="mt-1 text-xs text-green-600">✓ Available</p>
+              <p className="mt-1 text-xs text-green-600">{t.onboarding.slugAvailable}</p>
             )}
             {slugAvailable === false && (
-              <p className="mt-1 text-xs text-red-500">✗ Already taken</p>
+              <p className="mt-1 text-xs text-red-500">{t.onboarding.slugTaken}</p>
             )}
           </div>
 
           <Input
-            label="Phone *"
+            label={t.onboarding.phoneLabel}
             value={form.phone}
             onChange={(e) =>
               updateField("phone", e.target.value.replace(/\D/g, ""))
@@ -365,7 +366,7 @@ export function OnboardingForm({
           />
 
           <Input
-            label="Email"
+            label={t.onboarding.emailLabel}
             type="email"
             value={form.email}
             onChange={(e) => updateField("email", e.target.value)}
@@ -374,21 +375,21 @@ export function OnboardingForm({
           />
 
           <Input
-            label="Tagline"
+            label={t.onboarding.taglineLabel}
             value={form.tagline}
             onChange={(e) => updateField("tagline", e.target.value)}
-            placeholder="Capturing your special moments"
-            hint="Short description for your studio page"
+            placeholder={t.onboarding.taglinePlaceholder}
+            hint={t.onboarding.taglineHint}
           />
 
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              About Your Studio
+              {t.onboarding.aboutStudio}
             </label>
             <textarea
               value={form.bio}
               onChange={(e) => updateField("bio", e.target.value)}
-              placeholder="Tell clients about your experience, style, and what makes you special…"
+              placeholder={t.onboarding.aboutPlaceholder}
               rows={3}
               maxLength={2000}
               className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
@@ -397,9 +398,9 @@ export function OnboardingForm({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <div className="mb-1 flex items-center gap-2">
+              <div className="mb-1 flex items-center gap-2 min-h-[20px]">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  WhatsApp
+                  {t.onboarding.whatsappLabel}
                 </label>
                 <label className="flex items-center gap-1.5 cursor-pointer select-none">
                   <input
@@ -414,7 +415,7 @@ export function OnboardingForm({
                     className="h-3.5 w-3.5 rounded border-gray-300 dark:border-gray-600"
                   />
                   <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Same as phone
+                    {t.onboarding.sameAsPhone}
                   </span>
                 </label>
               </div>
@@ -435,16 +436,22 @@ export function OnboardingForm({
                 }`}
               />
             </div>
-            <Input
-              label="Instagram"
-              value={form.instagram}
-              onChange={(e) => updateField("instagram", e.target.value)}
-              placeholder="@yourstudio"
-            />
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300 min-h-[20px]">
+                {t.onboarding.instagramLabel}
+              </label>
+              <input
+                type="text"
+                value={form.instagram}
+                onChange={(e) => updateField("instagram", e.target.value)}
+                placeholder="@yourstudio"
+                className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+              />
+            </div>
           </div>
 
           <Input
-            label="Website"
+            label={t.onboarding.websiteLabel}
             type="url"
             value={form.website}
             onChange={(e) => updateField("website", e.target.value)}
@@ -452,7 +459,7 @@ export function OnboardingForm({
           />
 
           <Button onClick={handleNext} className="w-full">
-            Next — Location &amp; Skills →
+            {t.onboarding.nextLocationSkills}
           </Button>
         </div>
       )}
@@ -462,24 +469,25 @@ export function OnboardingForm({
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <Input
-              label="City *"
+              label={t.onboarding.cityLabel}
               value={form.city}
               onChange={(e) => updateField("city", e.target.value)}
               placeholder="Mumbai"
               error={errors.city}
             />
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                State *
+              <label className="mb-1 block text-sm font-medium text-gray-700 lg:text-base dark:text-gray-300">
+                {t.onboarding.stateLabel}
               </label>
               <select
                 value={form.state}
                 onChange={(e) => updateField("state", e.target.value)}
-                className={`select-styled w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-100 [&>option]:dark:bg-gray-800 [&>option]:dark:text-gray-100 ${
+                className={`w-full appearance-none rounded-xl border px-4 py-2.5 text-sm outline-none transition-colors lg:py-3 lg:text-base bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500 dark:bg-gray-800 dark:text-gray-100 [&>option]:dark:bg-gray-800 [&>option]:dark:text-gray-100 ${
                   errors.state ? "border-red-500" : "border-gray-300 dark:border-gray-600"
                 }`}
+                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: "no-repeat", backgroundPosition: "right 12px center" }}
               >
-                <option value="">Select state</option>
+                <option value="">{t.onboarding.selectState}</option>
                 {INDIAN_STATES.map((s) => (
                   <option key={s} value={s}>
                     {s}
@@ -493,7 +501,7 @@ export function OnboardingForm({
           </div>
 
           <Input
-            label="Pincode"
+            label={t.onboarding.pincodeLabel}
             value={form.pincode}
             onChange={(e) =>
               updateField("pincode", e.target.value.replace(/\D/g, ""))
@@ -505,7 +513,7 @@ export function OnboardingForm({
           {/* Specializations */}
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Specializations * <span className="text-gray-400 dark:text-gray-500">(select at least one)</span>
+              {t.onboarding.specializationsLabel} <span className="text-gray-400 dark:text-gray-500">({t.onboarding.selectAtLeastOne})</span>
             </label>
             <div className="flex flex-wrap gap-2">
               {SPECIALIZATION_OPTIONS.map((spec) => (
@@ -533,7 +541,7 @@ export function OnboardingForm({
           {/* Languages */}
           <div>
             <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Languages Spoken
+              {t.onboarding.languagesSpoken}
             </label>
             <div className="flex flex-wrap gap-2">
               {LANGUAGE_OPTIONS.map((lang) => (
@@ -556,7 +564,7 @@ export function OnboardingForm({
           {/* Starting Price */}
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Starting Price
+              {t.onboarding.startingPriceLabel}
             </label>
             <div className="flex overflow-hidden rounded-xl border border-gray-300 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500 dark:border-gray-600">
               <span className="flex items-center border-r border-gray-300 bg-gray-50 px-3 text-sm text-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400">
@@ -577,7 +585,7 @@ export function OnboardingForm({
               />
             </div>
             <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-              Starting price for your cheapest package
+              {t.onboarding.startingPriceHint}
             </p>
           </div>
 
@@ -588,14 +596,14 @@ export function OnboardingForm({
               onClick={() => setStep(1)}
               className="flex-1"
             >
-              ← Back
+              {t.onboarding.back}
             </Button>
             <Button
               onClick={handleSubmit}
               loading={loading}
               className="flex-1"
             >
-              Save &amp; Continue
+              {t.onboarding.saveAndContinue}
             </Button>
           </div>
         </div>

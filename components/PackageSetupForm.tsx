@@ -6,6 +6,7 @@
 
 import { useState, useCallback } from "react";
 import { Button, Input } from "@/components/ui";
+import { useI18n } from "@/lib/i18n";
 
 interface PackageData {
   name: string;
@@ -58,6 +59,7 @@ export function PackageSetupForm({
   onSkip,
   loading = false,
 }: PackageSetupFormProps) {
+  const { t } = useI18n();
   const [packages, setPackages] = useState<PackageData[]>([]);
   const [editing, setEditing] = useState<PackageData>(emptyPackage);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -98,10 +100,10 @@ export function PackageSetupForm({
   // ── Validate ──
   const validate = useCallback((): boolean => {
     const errs: Record<string, string> = {};
-    if (!editing.name.trim()) errs.name = "Package name is required";
-    if (!editing.price.trim()) errs.price = "Price is required";
+    if (!editing.name.trim()) errs.name = t.packageForm.nameRequired;
+    if (!editing.price.trim()) errs.price = t.packageForm.priceRequired;
     const priceNum = parseInt(editing.price, 10);
-    if (isNaN(priceNum) || priceNum < 0) errs.price = "Invalid price";
+    if (isNaN(priceNum) || priceNum < 0) errs.price = t.packageForm.priceInvalid;
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }, [editing]);
@@ -127,11 +129,10 @@ export function PackageSetupForm({
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          Service Packages
+          {t.packageForm.servicePackages}
         </h3>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Add your photography packages so clients know what you offer.
-          You can always edit these later.
+          {t.packageForm.packageDesc}
         </p>
       </div>
 
@@ -139,14 +140,14 @@ export function PackageSetupForm({
       {packages.length === 0 && !showForm && (
         <div className="rounded-xl border-2 border-dashed border-gray-300 p-6 text-center dark:border-gray-600">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Start with our suggested templates or create your own
+            {t.packageForm.templateHint}
           </p>
           <div className="mt-4 flex justify-center gap-3">
             <Button variant="secondary" size="sm" onClick={useTemplates}>
-              Use Templates
+              {t.packageForm.useTemplates}
             </Button>
             <Button size="sm" onClick={openAdd}>
-              + Create Package
+              {t.packageForm.createPackage}
             </Button>
           </div>
         </div>
@@ -205,7 +206,7 @@ export function PackageSetupForm({
               onClick={openAdd}
               className="w-full rounded-xl border-2 border-dashed border-gray-300 py-3 text-sm font-medium text-gray-500 hover:border-brand-400 hover:text-brand-600 transition-colors dark:border-gray-600 dark:text-gray-400"
             >
-              + Add Another Package
+              {t.packageForm.addAnother}
             </button>
           )}
         </div>
@@ -215,11 +216,11 @@ export function PackageSetupForm({
       {showForm && (
         <div className="rounded-xl border border-brand-200 bg-brand-50/30 p-4 space-y-3 dark:border-brand-800 dark:bg-brand-900/10">
           <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-            {editingIndex !== null ? "Edit Package" : "New Package"}
+            {editingIndex !== null ? t.packageForm.editPackage : t.packageForm.newPackage}
           </h4>
 
           <Input
-            label="Package Name *"
+            label={t.packageForm.packageNameLabel}
             value={editing.name}
             onChange={(e) =>
               setEditing((prev) => ({ ...prev, name: e.target.value }))
@@ -229,7 +230,7 @@ export function PackageSetupForm({
           />
 
           <Input
-            label="Description"
+            label={t.packageForm.descriptionLabel}
             value={editing.description}
             onChange={(e) =>
               setEditing((prev) => ({ ...prev, description: e.target.value }))
@@ -240,7 +241,7 @@ export function PackageSetupForm({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Price (₹) *
+                {t.packageForm.priceLabel}
               </label>
               <div className="flex overflow-hidden rounded-xl border border-gray-300 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500 dark:border-gray-600">
                 <span className="flex items-center border-r border-gray-300 bg-gray-50 px-3 text-sm text-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400">
@@ -266,7 +267,7 @@ export function PackageSetupForm({
             </div>
 
             <Input
-              label="Duration (hours)"
+              label={t.packageForm.durationLabel}
               type="number"
               value={editing.durationHours}
               onChange={(e) =>
@@ -280,7 +281,7 @@ export function PackageSetupForm({
           </div>
 
           <Input
-            label="Deliverables"
+            label={t.packageForm.deliverablesLabel}
             value={editing.deliverables}
             onChange={(e) =>
               setEditing((prev) => ({
@@ -301,10 +302,10 @@ export function PackageSetupForm({
               }}
               className="flex-1"
             >
-              Cancel
+              {t.packageForm.cancel}
             </Button>
             <Button size="sm" onClick={handleSave} className="flex-1">
-              {editingIndex !== null ? "Update" : "Add Package"}
+              {editingIndex !== null ? t.packageForm.update : t.packageForm.addPackage}
             </Button>
           </div>
         </div>
@@ -313,7 +314,7 @@ export function PackageSetupForm({
       {/* Footer actions */}
       <div className="flex gap-3 pt-2">
         <Button variant="ghost" onClick={onSkip} className="flex-1">
-          Skip for Now
+          {t.packageForm.skipForNow}
         </Button>
         <Button
           onClick={() => onComplete(packages)}
@@ -321,7 +322,7 @@ export function PackageSetupForm({
           disabled={packages.length === 0}
           className="flex-1"
         >
-          Complete Setup →
+          {t.packageForm.completeSetup}
         </Button>
       </div>
     </div>

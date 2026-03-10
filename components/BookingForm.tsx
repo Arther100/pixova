@@ -6,8 +6,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useI18n } from "@/lib/i18n";
 import { Input } from "@/components/ui";
 import { Button } from "@/components/ui";
+import { DatePicker, TimePicker } from "@/components/ui/scroll-picker";
 import { rupeesToPaise, paiseToRupees } from "@/utils/currency";
 
 interface PackageOption {
@@ -63,6 +65,7 @@ const EVENT_TYPES = [
 
 export function BookingForm({ mode, bookingId, initialData }: BookingFormProps) {
   const router = useRouter();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +109,52 @@ export function BookingForm({ mode, bookingId, initialData }: BookingFormProps) 
     mode === "edit" &&
     !!initialData?.status &&
     ["confirmed", "in_progress", "delivered", "completed"].includes(initialData.status);
+
+  // ── MOD-03: Date conflict check ──
+  const [dateConflict, setDateConflict] = useState<{
+    status: string;
+    message: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!eventDate) {
+      setDateConflict(null);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const checkDate = async () => {
+      try {
+        // Use photographer_id from cookie session (server resolves it)
+        const res = await fetch(
+          `/api/v1/calendar/check?photographer_id=self&date=${eventDate}`,
+          { signal: controller.signal }
+        );
+        const data = await res.json();
+
+        if (data.data?.status === "BOOKED" || data.data?.status === "BLOCKED") {
+          setDateConflict({
+            status: "error",
+            message: t.calendar.dateConflictBooked,
+          });
+        } else if (data.data?.status === "ENQUIRY") {
+          setDateConflict({
+            status: "warning",
+            message: t.calendar.dateConflictEnquiry,
+          });
+        } else {
+          setDateConflict(null);
+        }
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setDateConflict(null);
+      }
+    };
+
+    checkDate();
+    return () => controller.abort();
+  }, [eventDate]);
 
   // ── Load packages (with in-memory cache) ──
   const pkgFetched = useRef(false);
@@ -245,7 +294,7 @@ export function BookingForm({ mode, bookingId, initialData }: BookingFormProps) 
       const json = await res.json();
 
       if (!res.ok || !json.success) {
-        setError(json.error || "Something went wrong");
+        setError(json.error || t.bookingForm.somethingWrong);
         return;
       }
 
@@ -256,7 +305,7 @@ export function BookingForm({ mode, bookingId, initialData }: BookingFormProps) 
       router.prefetch(`/bookings/${newBookingId}`);
       setTimeout(() => router.push(`/bookings/${newBookingId}`), 300);
     } catch {
-      setError("Network error. Please try again.");
+      setError(t.bookingForm.networkError);
       setLoading(false);
     }
   }
@@ -270,15 +319,15 @@ export function BookingForm({ mode, bookingId, initialData }: BookingFormProps) 
           </svg>
         </div>
         <p className="mt-3 text-sm font-medium text-gray-900 dark:text-gray-100">
-          {mode === "create" ? "Booking created!" : "Changes saved!"}
+          {mode === "create" ? t.bookingForm.bookingCreated : t.bookingForm.changesSaved}
         </p>
-        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Redirecting…</p>
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t.bookingForm.redirecting}</p>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-8 lg:space-y-10">
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
           {error}
@@ -288,26 +337,26 @@ export function BookingForm({ mode, bookingId, initialData }: BookingFormProps) 
       {/* ── Client Details ── */}
       {mode === "create" && (
         <section>
-          <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">
-            Client Details
+          <h3 className="mb-4 text-sm font-semibold text-gray-900 lg:mb-5 lg:text-base dark:text-gray-100">
+            {t.bookingForm.clientDetails}
           </h3>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
             <Input
-              label="Client Name *"
+              label={t.bookingForm.clientName}
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
               placeholder="e.g., Priya Sharma"
               error={fieldErrors.clientName}
             />
             <Input
-              label="Mobile Number *"
+              label={t.bookingForm.mobileNumber}
               value={clientMobile}
               onChange={(e) => setClientMobile(e.target.value)}
               placeholder="e.g., 9876543210"
               error={fieldErrors.clientMobile}
             />
             <Input
-              label="Email"
+              label={t.bookingForm.email}
               type="email"
               value={clientEmail}
               onChange={(e) => setClientEmail(e.target.value)}
@@ -319,12 +368,12 @@ export function BookingForm({ mode, bookingId, initialData }: BookingFormProps) 
 
       {/* ── Event Details ── */}
       <section>
-        <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">
-          Event Details
+        <h3 className="mb-4 text-sm font-semibold text-gray-900 lg:mb-5 lg:text-base dark:text-gray-100">
+          {t.bookingForm.eventDetails}
         </h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
           <Input
-            label="Booking Title *"
+            label={t.bookingForm.bookingTitle}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g., Priya & Raj Wedding"
@@ -332,61 +381,79 @@ export function BookingForm({ mode, bookingId, initialData }: BookingFormProps) 
           />
 
           <div className="w-full">
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Event Type
+            <label className="mb-1 block text-sm font-medium text-gray-700 lg:text-base dark:text-gray-300">
+              {t.bookingForm.eventType}
             </label>
             <select
               value={eventType}
               onChange={(e) => setEventType(e.target.value)}
-              className="select-styled w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 [&>option]:dark:bg-gray-800 [&>option]:dark:text-gray-100"
+              className="select-styled w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 lg:py-3 lg:text-base dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 [&>option]:dark:bg-gray-800 [&>option]:dark:text-gray-100"
             >
-              <option value="">Select type</option>
-              {EVENT_TYPES.map((t) => (
-                <option key={t} value={t}>{t}</option>
+              <option value="">{t.bookingForm.selectEventType}</option>
+              {EVENT_TYPES.map((et) => (
+                <option key={et} value={et}>{et}</option>
               ))}
             </select>
           </div>
 
-          <Input
-            label="Event Date"
-            type="date"
-            value={eventDate}
-            onChange={(e) => setEventDate(e.target.value)}
-            error={fieldErrors.eventDate}
-          />
+          <div>
+            <DatePicker
+              label={t.bookingForm.eventDate}
+              value={eventDate}
+              onChange={(v) => {
+                setEventDate(v);
+                // If end date is before new start date, reset it
+                if (eventEndDate && v > eventEndDate) {
+                  setEventEndDate("");
+                }
+              }}
+              error={fieldErrors.eventDate}
+            />
+            {dateConflict && (
+              <p
+                className={`mt-1 text-sm ${
+                  dateConflict.status === "error"
+                    ? "text-red-600 dark:text-red-400"
+                    : "text-amber-600 dark:text-amber-400"
+                }`}
+              >
+                {dateConflict.message}
+              </p>
+            )}
+          </div>
 
-          <Input
-            label="End Date"
-            type="date"
+          <DatePicker
+            label={t.bookingForm.eventEndDate}
             value={eventEndDate}
-            onChange={(e) => setEventEndDate(e.target.value)}
-            hint="For multi-day events"
+            onChange={setEventEndDate}
+            minDate={eventDate || undefined}
+            disabled={!eventDate}
+            hint={!eventDate ? t.bookingForm.chooseDateFirst : t.bookingForm.multiDay}
             error={fieldErrors.eventEndDate}
           />
 
-          <Input
-            label="Event Time"
-            type="time"
+          <TimePicker
+            label={t.bookingForm.eventTime}
             value={eventTime}
-            onChange={(e) => setEventTime(e.target.value)}
+            onChange={setEventTime}
           />
 
           <Input
-            label="Venue"
+            label={t.bookingForm.venueLabel}
             value={venue}
             onChange={(e) => setVenue(e.target.value)}
             placeholder="e.g., The Grand Palace"
           />
 
           <Input
-            label="Venue Address"
+            label={t.bookingForm.venueAddress}
             value={venueAddress}
             onChange={(e) => setVenueAddress(e.target.value)}
             placeholder="Full address"
           />
 
           <Input
-            label="City"
+            label={t.bookingForm.cityLabel}
             value={city}
             onChange={(e) => setCity(e.target.value)}
             placeholder="e.g., Chennai"
@@ -396,21 +463,21 @@ export function BookingForm({ mode, bookingId, initialData }: BookingFormProps) 
 
       {/* ── Package & Pricing ── */}
       <section>
-        <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">
-          Package &amp; Pricing
+        <h3 className="mb-4 text-sm font-semibold text-gray-900 lg:mb-5 lg:text-base dark:text-gray-100">
+          {t.bookingForm.packagePricing}
         </h3>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
           {packages.length > 0 && (
             <div className="w-full">
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Package
+              <label className="mb-1 block text-sm font-medium text-gray-700 lg:text-base dark:text-gray-300">
+                {t.bookingForm.packageLabel}
               </label>
               <select
                 value={selectedPackage}
                 onChange={(e) => setSelectedPackage(e.target.value)}
-                className="select-styled w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 [&>option]:dark:bg-gray-800 [&>option]:dark:text-gray-100"
+                className="select-styled w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 lg:py-3 lg:text-base dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 [&>option]:dark:bg-gray-800 [&>option]:dark:text-gray-100"
               >
-                <option value="">No package</option>
+                <option value="">{t.bookingForm.noPackage}</option>
                 {packages.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name} — ₹{paiseToRupees(p.price).toLocaleString("en-IN")}
@@ -421,37 +488,37 @@ export function BookingForm({ mode, bookingId, initialData }: BookingFormProps) 
           )}
 
           <Input
-            label="Total Amount (₹) *"
+            label={t.bookingForm.totalAmount}
             type="number"
             value={totalRupees}
             onChange={(e) => setTotalRupees(e.target.value)}
             placeholder="e.g., 50000"
             error={fieldErrors.totalRupees}
             disabled={isAmountLocked}
-            hint={isAmountLocked ? "Locked after confirmation" : "Minimum ₹1,000"}
+            hint={isAmountLocked ? t.bookingForm.lockedAfter : t.bookingForm.minAmount}
           />
 
           <Input
-            label="Advance Amount (₹)"
+            label={t.bookingForm.advanceAmount}
             type="number"
             value={advanceRupees}
             onChange={(e) => setAdvanceRupees(e.target.value)}
             placeholder="e.g., 10000"
             error={fieldErrors.advanceRupees}
-            hint="Amount expected as advance"
+            hint={t.bookingForm.advanceHint}
           />
         </div>
       </section>
 
       {/* ── Notes & Team ── */}
       <section>
-        <h3 className="mb-4 text-sm font-semibold text-gray-900 dark:text-gray-100">
-          Notes &amp; Team
+        <h3 className="mb-4 text-sm font-semibold text-gray-900 lg:mb-5 lg:text-base dark:text-gray-100">
+          {t.bookingForm.notesTeam}
         </h3>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:gap-5">
           <div className="w-full">
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Notes (shared with client)
+            <label className="mb-1 block text-sm font-medium text-gray-700 lg:text-base dark:text-gray-300">
+              {t.bookingForm.clientNotes}
             </label>
             <textarea
               value={notes}
@@ -459,13 +526,13 @@ export function BookingForm({ mode, bookingId, initialData }: BookingFormProps) 
               rows={3}
               maxLength={2000}
               placeholder="Any details to share with the client..."
-              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 lg:py-3 lg:text-base dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
             />
           </div>
 
           <div className="w-full">
-            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Internal Notes (private)
+            <label className="mb-1 block text-sm font-medium text-gray-700 lg:text-base dark:text-gray-300">
+              {t.bookingForm.internalNotes}
             </label>
             <textarea
               value={internalNotes}
@@ -473,32 +540,32 @@ export function BookingForm({ mode, bookingId, initialData }: BookingFormProps) 
               rows={3}
               maxLength={2000}
               placeholder="Private notes for your reference..."
-              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 lg:py-3 lg:text-base dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
             />
           </div>
 
           <Input
-            label="Team Members"
+            label={t.bookingForm.teamMembers}
             value={teamMembersText}
             onChange={(e) => setTeamMembersText(e.target.value)}
             placeholder="e.g., Ram, Sita, Lakshman"
-            hint="Comma separated names"
+            hint={t.bookingForm.teamHint}
           />
         </div>
       </section>
 
       {/* ── Actions ── */}
-      <div className="flex items-center gap-3 border-t border-gray-200 pt-6 dark:border-gray-700">
-        <Button type="submit" loading={loading}>
-          {mode === "create" ? "Create Booking" : "Save Changes"}
-        </Button>
+      <div className="flex items-center justify-end gap-3 border-t border-gray-200 pt-6 dark:border-gray-700">
         <Button
           type="button"
           variant="secondary"
           onClick={() => router.back()}
           disabled={loading}
         >
-          Cancel
+          {t.cancel}
+        </Button>
+        <Button type="submit" loading={loading}>
+          {mode === "create" ? t.bookingForm.createBooking : t.bookingForm.saveChanges}
         </Button>
       </div>
     </form>

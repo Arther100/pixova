@@ -113,6 +113,50 @@ export async function POST(request: NextRequest, { params }: Params) {
       return serverErrorResponse("Failed to update booking status");
     }
 
+    // --- LOG STATUS HISTORY ---
+    await supabase.from("booking_status_history").insert({
+      booking_id: bookingId,
+      old_status: currentStatus,
+      new_status: newStatus,
+      changed_by: session.photographerId,
+      reason: reason || null,
+    });
+    // --- END STATUS HISTORY ---
+
+    // --- SYNC CALENDAR BLOCK ---
+    if (newStatus === "confirmed") {
+      // Upgrade calendar block from ENQUIRY to BOOKED
+      await supabase
+        .from("calendar_blocks")
+        .update({ status: "BOOKED" })
+        .eq("booking_id", bookingId);
+    } else if (newStatus === "cancelled") {
+      // Free the date — delete calendar block entirely
+      await supabase
+        .from("calendar_blocks")
+        .delete()
+        .eq("booking_id", bookingId);
+
+      // --- DECREMENT QUOTA ON CANCEL ---
+      const { data: sub } = await supabase
+        .from("subscriptions")
+        .select("id, bookings_this_cycle")
+        .eq("photographer_id", session.photographerId)
+        .in("status", ["active", "trialing"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (sub && (sub.bookings_this_cycle ?? 0) > 0) {
+        await supabase
+          .from("subscriptions")
+          .update({ bookings_this_cycle: sub.bookings_this_cycle - 1 })
+          .eq("id", sub.id);
+      }
+      // --- END DECREMENT QUOTA ---
+    }
+    // --- END CALENDAR BLOCK ---
+
     return successResponse({
       message: `Booking status changed to ${STATUS_LABELS[newStatus]}`,
       booking: updated,

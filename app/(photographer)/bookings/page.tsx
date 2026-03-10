@@ -7,8 +7,11 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n";
 import { BookingCard } from "@/components/BookingCard";
 import { Button } from "@/components/ui";
+import BookingSummaryCards from "@/components/BookingSummaryCards";
+import QuotaWarningBanner from "@/components/QuotaWarningBanner";
 
 interface BookingListItem {
   id: string;
@@ -35,32 +38,19 @@ interface BookingListResponse {
   page: number;
   limit: number;
   hasMore: boolean;
+  quota?: {
+    used: number;
+    limit: number;
+    resetDate: string | null;
+  };
 }
-
-const STATUS_FILTER_OPTIONS = [
-  { value: "", label: "All Statuses" },
-  { value: "enquiry", label: "Enquiry" },
-  { value: "confirmed", label: "Confirmed" },
-  { value: "in_progress", label: "In Progress" },
-  { value: "delivered", label: "Delivered" },
-  { value: "completed", label: "Completed" },
-  { value: "cancelled", label: "Cancelled" },
-];
-
-const SORT_OPTIONS = [
-  { value: "created_at:desc", label: "Newest First" },
-  { value: "created_at:asc", label: "Oldest First" },
-  { value: "event_date:asc", label: "Event Date (Soonest)" },
-  { value: "event_date:desc", label: "Event Date (Latest)" },
-  { value: "total_amount:desc", label: "Amount (High → Low)" },
-  { value: "total_amount:asc", label: "Amount (Low → High)" },
-];
 
 // In-memory cache: show stale data instantly on revisit, refresh in background
 let cachedBookings: BookingListResponse | null = null;
 let cachedKey = "";
 
 export default function BookingsPage() {
+  const { t } = useI18n();
   const [data, setData] = useState<BookingListResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -143,15 +133,27 @@ export default function BookingsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Bookings
+            {t.bookings.title}
           </h1>
           <p className="mt-1 hidden text-sm text-gray-500 sm:block dark:text-gray-400">
-            Manage your photography bookings and events.
+            {t.bookings.subtitle}
           </p>
         </div>
         <Link href="/bookings/new" prefetch={true}>
-          <Button>New Booking</Button>
+          <Button>{t.bookings.newBooking}</Button>
         </Link>
+      </div>
+
+      {/* ── Summary Cards & Quota Banner ── */}
+      <div className="mt-6">
+        <BookingSummaryCards />
+        {data?.quota && (
+          <QuotaWarningBanner
+            used={data.quota.used}
+            limit={data.quota.limit}
+            resetDate={data.quota.resetDate}
+          />
+        )}
       </div>
 
       {/* ── Filters bar ── */}
@@ -175,7 +177,7 @@ export default function BookingsPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by client name, mobile, or booking ref..."
+            placeholder={t.bookings.searchPlaceholder}
             className="w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-10 pr-4 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500"
           />
         </div>
@@ -186,7 +188,15 @@ export default function BookingsPage() {
           onChange={(e) => setStatusFilter(e.target.value)}
           className="select-styled rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 [&>option]:dark:bg-gray-800 [&>option]:dark:text-gray-100"
         >
-          {STATUS_FILTER_OPTIONS.map((opt) => (
+          {[
+            { value: "", label: t.bookings.allStatuses },
+            { value: "enquiry", label: t.bookings.statusEnquiry },
+            { value: "confirmed", label: t.bookings.statusConfirmed },
+            { value: "in_progress", label: t.bookings.statusInProgress },
+            { value: "delivered", label: t.bookings.statusDelivered },
+            { value: "completed", label: t.bookings.statusCompleted },
+            { value: "cancelled", label: t.bookings.statusCancelled },
+          ].map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>
@@ -199,7 +209,14 @@ export default function BookingsPage() {
           onChange={(e) => setSortValue(e.target.value)}
           className="select-styled rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 [&>option]:dark:bg-gray-800 [&>option]:dark:text-gray-100"
         >
-          {SORT_OPTIONS.map((opt) => (
+          {[
+            { value: "created_at:desc", label: t.bookings.newestFirst },
+            { value: "created_at:asc", label: t.bookings.oldestFirst },
+            { value: "event_date:asc", label: t.bookings.eventSoonest },
+            { value: "event_date:desc", label: t.bookings.eventLatest },
+            { value: "total_amount:desc", label: t.bookings.amountHighLow },
+            { value: "total_amount:asc", label: t.bookings.amountLowHigh },
+          ].map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>
@@ -210,13 +227,33 @@ export default function BookingsPage() {
       {/* ── Content ── */}
       <div className="mt-6">
         {loading && !data ? (
-          null // No flash — data is prefetched
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div
+                key={i}
+                className="animate-pulse rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"
+              >
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="h-4 w-32 rounded bg-gray-200 dark:bg-gray-700" />
+                    <div className="h-5 w-16 rounded-full bg-gray-200 dark:bg-gray-700" />
+                  </div>
+                  <div className="h-3 w-24 rounded bg-gray-100 dark:bg-gray-800" />
+                  <div className="h-3 w-36 rounded bg-gray-100 dark:bg-gray-800" />
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-800">
+                    <div className="h-4 w-20 rounded bg-gray-200 dark:bg-gray-700" />
+                    <div className="h-3 w-16 rounded bg-gray-100 dark:bg-gray-800" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-20">
             <span className="text-4xl">⚠️</span>
             <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">{error}</p>
             <Button variant="secondary" className="mt-4" onClick={fetchBookings}>
-              Retry
+              {t.retry}
             </Button>
           </div>
         ) : !data || data.items.length === 0 ? (
@@ -235,23 +272,23 @@ export default function BookingsPage() {
               />
             </svg>
             <h3 className="mt-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-              {searchQuery || statusFilter ? "No bookings match your filters" : "No bookings yet"}
+              {searchQuery || statusFilter ? t.bookings.noMatch : t.bookings.noBookings}
             </h3>
             <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
               {searchQuery || statusFilter
-                ? "Try adjusting your search or filters."
-                : "Create your first booking to get started."}
+                ? t.bookings.adjustFilters
+                : t.bookings.createFirst}
             </p>
             {!searchQuery && !statusFilter && (
               <Link href="/bookings/new" prefetch={true} className="mt-6">
-                <Button>New Booking</Button>
+                <Button>{t.bookings.newBooking}</Button>
               </Link>
             )}
           </div>
         ) : (
           <>
-            {/* Bookings list */}
-            <div className="space-y-3">
+            {/* Bookings grid */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {data.items.map((booking) => (
                 <BookingCard key={booking.id} booking={booking} />
               ))}
@@ -261,8 +298,8 @@ export default function BookingsPage() {
             {data.total > limit && (
               <div className="mt-6 flex items-center justify-between">
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Showing {(page - 1) * limit + 1}–
-                  {Math.min(page * limit, data.total)} of {data.total}
+                  {t.bookings.showing} {(page - 1) * limit + 1}–
+                  {Math.min(page * limit, data.total)} {t.bookings.of} {data.total}
                 </p>
                 <div className="flex items-center gap-2">
                   <Button
@@ -271,10 +308,10 @@ export default function BookingsPage() {
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
                   >
-                    Previous
+                    {t.bookings.previous}
                   </Button>
                   <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Page {page}
+                    {t.bookings.page} {page}
                   </span>
                   <Button
                     variant="secondary"
@@ -282,7 +319,7 @@ export default function BookingsPage() {
                     onClick={() => setPage((p) => p + 1)}
                     disabled={!data.hasMore}
                   >
-                    Next
+                    {t.bookings.next}
                   </Button>
                 </div>
               </div>

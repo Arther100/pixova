@@ -12,6 +12,7 @@ import { PackageSetupForm } from "@/components/PackageSetupForm";
 import { OnboardingProgress } from "@/components/OnboardingProgress";
 import { ProfileCompletionBar } from "@/components/ProfileCompletionBar";
 import { Button } from "@/components/ui";
+import { useI18n } from "@/lib/i18n";
 
 type Step = 1 | 2 | 3;
 
@@ -42,24 +43,16 @@ interface PackageData {
   durationHours: string;
 }
 
-const STEP_INFO = [
-  {
-    title: "Tell us about your studio",
-    subtitle: "Basic details so clients can discover you",
-  },
-  {
-    title: "Set up your packages",
-    subtitle: "Show clients what you offer and at what price",
-  },
-  {
-    title: "Review & go live",
-    subtitle: "Preview your profile and launch your studio page",
-  },
-];
-
 export default function OnboardingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useI18n();
+
+  const STEP_INFO = [
+    { title: t.onboarding.step1Title, subtitle: t.onboarding.step1Subtitle },
+    { title: t.onboarding.step2Title, subtitle: t.onboarding.step2Subtitle },
+    { title: t.onboarding.step3Title, subtitle: t.onboarding.step3Subtitle },
+  ];
   const [step, setStep] = useState<Step>(1);
   const [studioData, setStudioData] = useState<StudioFormData | null>(null);
   const [packageData, setPackageData] = useState<PackageData[]>([]);
@@ -177,13 +170,16 @@ export default function OnboardingPage() {
       const json = await res.json();
 
       if (!res.ok) {
-        setError(json.error || "Failed to save. Please try again.");
+        setError(json.error || t.onboarding.saveFailed);
         return;
       }
 
-      router.push("/dashboard");
+      // Hard navigation so the browser picks up the new pixova_onboarded=1 cookie
+      // set by the API. router.push() would use client-side nav and the old
+      // middleware cookie cache would bounce us back to /onboarding.
+      window.location.href = "/dashboard";
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(t.onboarding.somethingWrong);
     } finally {
       setLoading(false);
     }
@@ -202,19 +198,27 @@ export default function OnboardingPage() {
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
             <p className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-              Launching your studio…
+              {t.onboarding.launching}
             </p>
           </div>
         </div>
       )}
       {/* Top bar */}
       <header className="sticky top-0 z-10 border-b border-gray-200/60 bg-white/90 backdrop-blur-md dark:border-gray-800 dark:bg-gray-900/90">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3 pr-14">
-          <span className="font-display text-xl font-bold text-brand-600">
-            Pixova
-          </span>
+        <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-3">
+            <span className="font-display text-xl font-bold text-brand-600">
+              Pixova
+            </span>
+            <a
+              href="/api/v1/auth/logout"
+              className="rounded-lg border border-gray-200 px-2.5 py-1 text-[11px] font-medium text-gray-500 transition-colors hover:border-red-300 hover:text-red-600 dark:border-gray-700 dark:text-gray-400 dark:hover:border-red-700 dark:hover:text-red-400"
+            >
+              {t.onboarding.signOut}
+            </a>
+          </div>
           <span className="rounded-full border border-brand-600 bg-brand-600 px-3 py-1 text-xs font-semibold text-white">
-            Step {step} of 3
+            {step} {t.onboarding.stepOf} 3
           </span>
         </div>
       </header>
@@ -234,7 +238,7 @@ export default function OnboardingPage() {
         <OnboardingProgress
           currentStep={step}
           totalSteps={3}
-          labels={["Studio Basics", "Packages", "Go Live"]}
+          labels={[t.onboarding.studioBasicsLabel, t.onboarding.packagesLabel, t.onboarding.goLiveLabel]}
         />
 
         {/* Error */}
@@ -272,7 +276,7 @@ export default function OnboardingPage() {
                 className="mt-5 flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-brand-600 transition-colors dark:text-gray-400"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                Back to Studio Basics
+                {t.onboarding.backToBasics}
               </button>
             </div>
           )}
@@ -285,8 +289,8 @@ export default function OnboardingPage() {
                 <ProfileCompletionBar score={profileScore} />
                 <p className="mt-2.5 text-xs text-gray-600 dark:text-gray-400">
                   {profileScore >= 80
-                    ? "Your profile is looking great! 🎉"
-                    : "Tip: Add more details from Settings later to reach 100%."}
+                    ? t.onboarding.profileGood
+                    : t.onboarding.profileTip}
                 </p>
               </div>
 
@@ -296,7 +300,7 @@ export default function OnboardingPage() {
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-900/30">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand-600 dark:text-brand-400"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                   </span>
-                  Profile Preview
+                  {t.onboarding.profilePreview}
                 </h3>
                 <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-5 dark:border-gray-700 dark:bg-gray-800/50">
                   <div className="flex items-start gap-4">
@@ -342,7 +346,7 @@ export default function OnboardingPage() {
                       <span className="text-sm">📦</span>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         {packageData.length} package{packageData.length > 1 ? "s" : ""} •{" "}
-                        Starting from{" "}
+                        {t.onboarding.startingFrom}{" "}
                         <span className="font-semibold text-gray-900 dark:text-gray-100">
                           ₹{Math.min(
                             ...packageData.map((p) => parseInt(p.price) || 0)
@@ -366,10 +370,10 @@ export default function OnboardingPage() {
               <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
                 <div>
                   <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                    Make profile public
+                    {t.onboarding.makePublic}
                   </h4>
                   <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                    Let clients discover you on Pixova
+                    {t.onboarding.discoverOnPixova}
                   </p>
                 </div>
                 <button
@@ -394,19 +398,19 @@ export default function OnboardingPage() {
                   onClick={() => setStep(2)}
                   className="flex-1"
                 >
-                  ← Back
+                  {t.onboarding.back}
                 </Button>
                 <Button
                   onClick={handleGoLive}
                   loading={loading}
                   className="flex-1"
                 >
-                  Launch Studio
+                  {t.onboarding.launchStudio}
                 </Button>
               </div>
 
               <p className="text-center text-xs text-gray-400 dark:text-gray-500">
-                You can update everything later from Settings
+                {t.onboarding.updateFromSettings}
               </p>
             </div>
           )}

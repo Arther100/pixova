@@ -5,9 +5,11 @@
 "use client";
 
 import { BookingForm } from "@/components/BookingForm";
+import { useI18n } from "@/lib/i18n";
 import Link from "next/link";
 
 export default function NewBookingPage() {
+  const { t } = useI18n();
   return (
     <div>
       {/* Breadcrumb */}
@@ -18,10 +20,10 @@ export default function NewBookingPage() {
             prefetch={true}
             className="hover:text-brand-600 dark:hover:text-brand-400"
           >
-            Bookings
+            {t.bookings.title}
           </Link>
           <span>/</span>
-          <span className="text-gray-900 dark:text-gray-100">New Booking</span>
+          <span className="text-gray-900 dark:text-gray-100">{t.bookings.newBooking}</span>
         </nav>
       </div>
 
@@ -40,16 +42,16 @@ export default function NewBookingPage() {
         </Link>
         <div>
           <h1 className="font-display text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Create New Booking
+            {t.bookings.createNew}
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Add a new photography booking for a client.
+            {t.bookings.createSubtitle}
           </p>
         </div>
       </div>
 
       {/* Form */}
-      <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
+      <div className="rounded-xl border border-gray-200 bg-white p-5 sm:p-6 lg:p-8 dark:border-gray-700 dark:bg-gray-900">
         <BookingForm mode="create" />
       </div>
     </div>
