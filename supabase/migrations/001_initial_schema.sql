@@ -370,36 +370,9 @@ CREATE INDEX idx_calendar_blocks_dates        ON calendar_blocks(start_date, end
 
 -- ============================================================
 -- TABLE 11: agreements
--- Contracts / e-sign documents sent to clients
+-- REMOVED — replaced by MOD-04 migration (20260310_mod04_agreements.sql)
+-- which uses agreement_id PK, studio_id FK, JSONB snapshot pattern
 -- ============================================================
-
-CREATE TABLE agreements (
-  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  photographer_id   UUID NOT NULL REFERENCES photographers(id) ON DELETE CASCADE,
-  booking_id        UUID REFERENCES bookings(id) ON DELETE SET NULL,
-  client_id         UUID NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
-  title             TEXT NOT NULL,
-  content           TEXT NOT NULL,                   -- Markdown / HTML body
-  status            agreement_status NOT NULL DEFAULT 'draft',
-  sent_at           TIMESTAMPTZ,
-  viewed_at         TIMESTAMPTZ,
-  signed_at         TIMESTAMPTZ,
-  signer_name       TEXT,
-  signer_ip         INET,
-  signature_url     TEXT,                            -- R2 key for signature image
-  expires_at        TIMESTAMPTZ,
-  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE INDEX idx_agreements_photographer ON agreements(photographer_id);
-CREATE INDEX idx_agreements_booking      ON agreements(booking_id);
-CREATE INDEX idx_agreements_client       ON agreements(client_id);
-CREATE INDEX idx_agreements_status       ON agreements(status);
-
-CREATE TRIGGER tr_agreements_updated
-  BEFORE UPDATE ON agreements
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 
 -- ============================================================
@@ -816,7 +789,7 @@ ALTER TABLE subscriptions          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE clients                ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE calendar_blocks        ENABLE ROW LEVEL SECURITY;
-ALTER TABLE agreements             ENABLE ROW LEVEL SECURITY;
+-- agreements RLS handled by MOD-04 migration
 ALTER TABLE galleries              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gallery_photos         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gallery_access_logs    ENABLE ROW LEVEL SECURITY;
@@ -897,21 +870,7 @@ CREATE POLICY "calendar_blocks_owner" ON calendar_blocks
     photographer_id IN (SELECT id FROM photographers WHERE auth_id = auth.uid())
   );
 
--- ── Agreements ──
-CREATE POLICY "agreements_photographer_owner" ON agreements
-  FOR ALL USING (
-    photographer_id IN (SELECT id FROM photographers WHERE auth_id = auth.uid())
-  );
-
--- Client can view agreements sent to them
-CREATE POLICY "agreements_client_read" ON agreements
-  FOR SELECT USING (
-    client_id IN (
-      SELECT c.id FROM clients c
-      JOIN client_accounts ca ON ca.client_id = c.id
-      WHERE ca.auth_id = auth.uid()
-    )
-  );
+-- ── Agreements — RLS handled by MOD-04 migration ──
 
 -- ── Galleries ──
 CREATE POLICY "galleries_photographer_owner" ON galleries

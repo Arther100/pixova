@@ -6,7 +6,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { OnboardingForm } from "@/components/OnboardingForm";
 import { PackageSetupForm } from "@/components/PackageSetupForm";
 import { OnboardingProgress } from "@/components/OnboardingProgress";
@@ -44,7 +44,6 @@ interface PackageData {
 }
 
 export default function OnboardingPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { t } = useI18n();
 

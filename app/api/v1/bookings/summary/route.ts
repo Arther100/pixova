@@ -2,6 +2,8 @@
 // GET /api/v1/bookings/summary — Booking summary cards data
 // ============================================
 
+export const dynamic = 'force-dynamic';
+
 import { getSessionFromCookie } from "@/lib/session";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import {

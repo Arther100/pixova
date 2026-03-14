@@ -154,6 +154,7 @@ export function BookingForm({ mode, bookingId, initialData }: BookingFormProps) 
 
     checkDate();
     return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventDate]);
 
   // ── Load packages (with in-memory cache) ──
@@ -294,7 +295,34 @@ export function BookingForm({ mode, bookingId, initialData }: BookingFormProps) 
       const json = await res.json();
 
       if (!res.ok || !json.success) {
-        setError(json.error || t.bookingForm.somethingWrong);
+        // Handle DATE_CONFLICT with confirmation dialog
+        if (json.error?.code === "DATE_CONFLICT") {
+          const confirmed = window.confirm(
+            `This date already has a ${json.error.conflictStatus?.toLowerCase()} booking. Are you sure you want to create another booking on this date?`
+          );
+          if (confirmed) {
+            // Retry with override flag
+            const retryRes = await fetch(url, {
+              method,
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ ...payload, confirm_date_override: true }),
+            });
+            const retryJson = await retryRes.json();
+            if (!retryRes.ok || !retryJson.success) {
+              setError(retryJson.error?.message || retryJson.error || t.bookingForm.somethingWrong);
+              return;
+            }
+            // Override succeeded — continue to success flow
+            setSuccess(true);
+            const overrideId = retryJson.data?.id || bookingId;
+            router.prefetch(`/bookings/${overrideId}`);
+            setTimeout(() => router.push(`/bookings/${overrideId}`), 300);
+            return;
+          }
+          // User cancelled — stay on form
+          return;
+        }
+        setError(json.error?.message || json.error || t.bookingForm.somethingWrong);
         return;
       }
 

@@ -18,15 +18,6 @@ interface DatePopoverProps {
   onUnblock: (blockId: string) => void;
 }
 
-function formatDateLabel(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-IN", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
 export function DatePopover({
   date,
   block,

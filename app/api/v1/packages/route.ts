@@ -4,6 +4,8 @@
 // Lightweight endpoint used by BookingForm
 // ============================================
 
+export const dynamic = 'force-dynamic';
+
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { getSessionFromCookie } from "@/lib/session";
 import {
@@ -42,7 +44,7 @@ export async function GET() {
       return successResponse({ packages: [] });
     }
 
-    return successResponse({ packages: packages || [] });
+    return successResponse({ packages: packages || [] }, 200, "long");
   } catch (err) {
     console.error("[packages] error:", err);
     return serverErrorResponse();

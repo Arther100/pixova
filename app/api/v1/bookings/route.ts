@@ -3,6 +3,8 @@
 // POST /api/v1/bookings — Create a new booking
 // ============================================
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionFromCookie } from "@/lib/session";
 import { createSupabaseAdmin } from "@/lib/supabase";
@@ -255,14 +257,36 @@ export async function POST(request: NextRequest) {
     if (data.eventDate) {
       const { data: blocks } = await supabase
         .from("calendar_blocks")
-        .select("id, title")
+        .select("id, title, status")
         .eq("photographer_id", session.photographerId)
         .lte("start_date", data.eventDate)
         .gte("end_date", data.eventDate);
 
-      if (blocks && blocks.length > 0) {
-        return errorResponse(
-          `Date conflict: ${data.eventDate} overlaps with "${blocks[0].title}". Please choose another date.`
+      const conflictBlock = blocks?.[0] as { id: string; title: string; status: string } | undefined;
+      let dateConflict = false;
+      let dateConflictStatus: string | null = null;
+
+      if (conflictBlock) {
+        if (conflictBlock.status === "BOOKED" || conflictBlock.status === "BLOCKED") {
+          dateConflict = true;
+          dateConflictStatus = conflictBlock.status;
+        }
+      }
+
+      const confirmOverride = body.confirm_date_override === true;
+
+      if (dateConflict && !confirmOverride) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: "DATE_CONFLICT",
+              message: `This date is already ${dateConflictStatus?.toLowerCase()}. Pass confirm_date_override: true to create anyway.`,
+              dateConflict: true,
+              conflictStatus: dateConflictStatus,
+            },
+          },
+          { status: 409 }
         );
       }
     }

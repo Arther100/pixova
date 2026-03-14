@@ -3,6 +3,8 @@
 // Verify OTP → photographer record → JWT session cookie
 // ============================================
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from "next/server";
 import {
   errorResponse,

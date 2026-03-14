@@ -56,6 +56,7 @@ export default function DashboardPage() {
     }
 
     return () => { isMounted.current = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) {

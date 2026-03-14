@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { Suspense, useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui";
 import { OTPInput } from "@/components/ui/otp-input";
@@ -18,6 +18,14 @@ type Step = "phone" | "otp";
 type VerifyState = "idle" | "verifying" | "error" | "success";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageContent() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
   const { t } = useI18n();

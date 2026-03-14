@@ -2,6 +2,8 @@
 // GET  /api/v1/auth/sessions — list active sessions
 // ============================================
 
+export const dynamic = 'force-dynamic';
+
 import {
   successResponse,
   errorResponse,

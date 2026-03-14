@@ -14,6 +14,7 @@ export type {
   Booking,
   CalendarBlock,
   Agreement,
+  CancellationPolicy,
   Gallery,
   GalleryPhoto,
   GalleryAccessLog,
@@ -205,4 +206,31 @@ export interface VerifyPaymentPayload {
   razorpayOrderId: string;
   razorpayPaymentId: string;
   razorpaySignature: string;
+}
+
+// ---------- Agreement Snapshot ----------
+export interface AgreementSnapshot {
+  agreement_ref: string;
+  generated_at: string;
+  studio_name: string;
+  studio_address: string | null;
+  studio_mobile: string | null;
+  studio_city: string;
+  gstin: string | null;
+  client_name: string;
+  client_mobile: string;
+  client_email: string | null;
+  booking_ref: string;
+  event_type: string;
+  event_date: string;
+  event_end_date: string | null;
+  venue_name: string | null;
+  venue_city: string | null;
+  package_name: string | null;
+  package_inclusions: string | null;
+  total_amount: number;
+  advance_paid: number;
+  balance_amount: number;
+  cancellation_policy: string;
+  notes: string | null;
 }

@@ -141,6 +141,17 @@ export function portfolioPhotoKey(
 }
 
 /**
+ * Generate a storage key for agreement PDFs.
+ * Format: agreements/{studioId}/{agreementId}.pdf
+ */
+export function agreementPdfKey(
+  studioId: string,
+  agreementId: string
+): string {
+  return `agreements/${studioId}/${agreementId}.pdf`;
+}
+
+/**
  * Generate a storage key for agreement signatures.
  * Format: photographers/{photographerId}/agreements/{agreementId}/signature.png
  */

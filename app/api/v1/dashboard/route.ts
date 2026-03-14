@@ -3,6 +3,8 @@
 // Returns dashboard data for authenticated photographer
 // ============================================
 
+export const dynamic = 'force-dynamic';
+
 import {
   successResponse,
   unauthorizedResponse,

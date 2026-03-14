@@ -3,12 +3,13 @@
 // Creates studio_profile + packages, marks photographer onboarded
 // ============================================
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { getSessionFromCookie } from "@/lib/session";
 import {
-  successResponse,
   errorResponse,
   unauthorizedResponse,
   serverErrorResponse,

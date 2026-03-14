@@ -4,6 +4,8 @@
 // DELETE /api/v1/bookings/[bookingId] — Delete (soft: cancel) booking
 // ============================================
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest } from "next/server";
 import { getSessionFromCookie } from "@/lib/session";
 import { createSupabaseAdmin } from "@/lib/supabase";

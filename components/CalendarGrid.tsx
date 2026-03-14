@@ -49,8 +49,12 @@ export function CalendarGrid({
   // Locale-aware month name
   const monthName = new Date(year, month - 1).toLocaleDateString(dateLocale, { month: "long" });
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
 
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth() + 1;

@@ -1,11 +1,13 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "@/lib/theme";
 import { useI18n, LOCALE_NAMES, type Locale } from "@/lib/i18n";
 import { BRAND_COLORS, BRAND_COLOR_KEYS } from "@/lib/colors";
+import NavigationProgress from "@/components/NavigationProgress";
 
 /* ── SVG icon components for pixel-perfect alignment ── */
 function IconDashboard({ className }: { className?: string }) {
@@ -109,7 +111,6 @@ export default function PhotographerLayout({
   const profileRef = useRef<HTMLDivElement>(null);
   const [profileName, setProfileName] = useState("");
   const [profileInitial, setProfileInitial] = useState("");
-  const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
 
   // Close profile dropdown on outside click
   useEffect(() => {
@@ -122,10 +123,9 @@ export default function PhotographerLayout({
     return () => document.removeEventListener("mousedown", handle);
   }, []);
 
-  // Close mobile sidebar + clear nav loading on route change
+  // Close mobile sidebar on route change
   useEffect(() => {
     setMobileOpen(false);
-    setNavigatingTo(null);
   }, [pathname]);
 
   // Preload API data on layout mount & extract profile name
@@ -164,13 +164,10 @@ export default function PhotographerLayout({
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* ── Top navigation progress bar ── */}
-      {navigatingTo && (
-        <div className="fixed inset-x-0 top-0 z-[100] h-0.5">
-          <div className="h-full animate-pulse bg-brand-600" style={{ animation: 'navProgress 1.5s ease-in-out infinite' }} />
-          <style>{`@keyframes navProgress { 0% { width: 0% } 50% { width: 70% } 100% { width: 90% } }`}</style>
-        </div>
-      )}
+      {/* ── Navigation progress bar ── */}
+      <Suspense fallback={null}>
+        <NavigationProgress />
+      </Suspense>
 
       {/* ── Mobile overlay ── */}
       {mobileOpen && (
@@ -203,14 +200,14 @@ export default function PhotographerLayout({
 
         <nav className="mt-4 flex-1 space-y-1 overflow-y-auto px-3">
           {NAV_KEYS.map((item) => {
-            const isActive = pathname.startsWith(item.href) || navigatingTo === item.href;
+            const isActive = pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 prefetch={true}
                 onClick={() => {
-                  if (!pathname.startsWith(item.href)) setNavigatingTo(item.href);
+                  setMobileOpen(false);
                 }}
                 onMouseEnter={() => {
                   // Preload API data on hover for instant page render

@@ -75,9 +75,12 @@ export function createSupabaseMiddleware(
   );
 }
 
-// ---------- Admin client (service role, bypasses RLS — server-only) ----------
+// ---------- Admin client (service role, bypasses RLS — server-only, singleton) ----------
+let _adminClient: SupabaseClient<Database> | null = null;
+
 export function createSupabaseAdmin(): SupabaseClient<Database> {
-  return createClient<Database>(
+  if (_adminClient) return _adminClient;
+  _adminClient = createClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
@@ -87,4 +90,5 @@ export function createSupabaseAdmin(): SupabaseClient<Database> {
       },
     }
   );
+  return _adminClient;
 }

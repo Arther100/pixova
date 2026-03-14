@@ -4,6 +4,8 @@
 // Used by: booking form + enquiry form date conflict check
 // ============================================
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest } from "next/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { getSessionFromCookie } from "@/lib/session";

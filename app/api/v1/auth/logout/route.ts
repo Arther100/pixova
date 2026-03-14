@@ -3,6 +3,8 @@
 // Sign out — remove active session, clear JWT cookie
 // ============================================
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from "next/server";
 import {
   errorResponse,

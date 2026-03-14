@@ -106,6 +106,7 @@ export function PackageSetupForm({
     if (isNaN(priceNum) || priceNum < 0) errs.price = t.packageForm.priceInvalid;
     setErrors(errs);
     return Object.keys(errs).length === 0;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing]);
 
   // ── Save package ──

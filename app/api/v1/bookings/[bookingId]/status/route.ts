@@ -3,6 +3,8 @@
 // Enforces the status machine transitions
 // ============================================
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest } from "next/server";
 import { getSessionFromCookie } from "@/lib/session";
 import { createSupabaseAdmin } from "@/lib/supabase";
@@ -130,6 +132,25 @@ export async function POST(request: NextRequest, { params }: Params) {
         .from("calendar_blocks")
         .update({ status: "BOOKED" })
         .eq("booking_id", bookingId);
+
+      // --- AUTO GENERATE AGREEMENT ---
+      try {
+        fetch(
+          `${process.env.NEXT_PUBLIC_APP_URL}/api/v1/agreements/generate/${bookingId}`,
+          {
+            method: "POST",
+            headers: {
+              Cookie: request.headers.get("cookie") ?? "",
+              "Content-Type": "application/json",
+            },
+          }
+        ).catch((err) => {
+          console.error("Agreement auto-generation failed:", err);
+        });
+      } catch (err) {
+        console.error("Agreement trigger error:", err);
+      }
+      // --- END AUTO GENERATE AGREEMENT ---
     } else if (newStatus === "cancelled") {
       // Free the date — delete calendar block entirely
       await supabase

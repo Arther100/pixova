@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextRequest } from "next/server";
 import { successResponse, errorResponse, serverErrorResponse } from "@/lib/api-helpers";
 import { verifyPaymentSignature } from "@/lib/razorpay";

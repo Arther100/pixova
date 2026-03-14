@@ -3,6 +3,8 @@
 // Returns slug availability for onboarding form
 // ============================================
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest } from "next/server";
 import { getSessionFromCookie } from "@/lib/session";
 import {

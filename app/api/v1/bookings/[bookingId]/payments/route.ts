@@ -3,6 +3,8 @@
 // POST /api/v1/bookings/[bookingId]/payments — Record a manual payment
 // ============================================
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest } from "next/server";
 import { z } from "zod/v4";
 import { createSupabaseAdmin } from "@/lib/supabase";

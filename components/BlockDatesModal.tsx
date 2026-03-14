@@ -32,8 +32,7 @@ export function BlockDatesModal({
   onClose,
   onSuccess,
 }: BlockDatesModalProps) {
-  const { locale, t } = useI18n();
-  const dateLocale = `${locale}-IN`;
+  const { t } = useI18n();
   const [startDate, setStartDate] = useState(initialDate || "");
   const [endDate, setEndDate] = useState("");
   const [notes, setNotes] = useState("");

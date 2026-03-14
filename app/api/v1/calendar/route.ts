@@ -3,6 +3,8 @@
 // Auth: Photographer JWT (required)
 // ============================================
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest } from "next/server";
 import { getSessionFromCookie } from "@/lib/session";
 import { createSupabaseAdmin } from "@/lib/supabase";
@@ -64,7 +66,7 @@ export async function GET(request: NextRequest) {
       .map((b) => b.booking_id as string);
 
     // Fetch booking details with client data for enrichment
-    let bookingMap: Record<
+    const bookingMap: Record<
       string,
       { booking_ref: string; client_name: string; event_type: string | null }
     > = {};

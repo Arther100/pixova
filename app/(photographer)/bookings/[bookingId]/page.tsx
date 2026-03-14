@@ -10,6 +10,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import { BookingStatusBadge } from "@/components/BookingStatusBadge";
+import { AgreementStatusBadge } from "@/components/AgreementStatusBadge";
 import { BookingTimeline } from "@/components/BookingTimeline";
 import { ClientDetailsForm } from "@/components/ClientDetailsForm";
 import { Button } from "@/components/ui";
@@ -103,6 +104,12 @@ export default function BookingDetailPage() {
   }
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
 
+  // Agreement state
+  const [agreementId, setAgreementId] = useState<string | null>(null);
+  const [agreementRef, setAgreementRef] = useState<string | null>(null);
+  const [agreementStatus, setAgreementStatus] = useState<string | null>(null);
+  const [generatingAgreement, setGeneratingAgreement] = useState(false);
+
   const fetchBooking = useCallback(async () => {
     // Show cached data instantly, still refresh in background
     if (!bookingCache.has(bookingId)) {
@@ -143,6 +150,49 @@ export default function BookingDetailPage() {
   useEffect(() => {
     fetchPayments();
   }, [fetchPayments]);
+
+  // Fetch agreement for this booking
+  const fetchAgreement = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/v1/agreements?booking_id=${bookingId}`);
+      const json = await res.json();
+      if (json.success && json.data?.agreements?.length) {
+        const a = json.data.agreements[0];
+        setAgreementId(a.agreement_id);
+        setAgreementRef(a.agreement_ref);
+        setAgreementStatus(a.status);
+      }
+    } catch {
+      // non-critical
+    }
+  }, [bookingId]);
+
+  useEffect(() => {
+    fetchAgreement();
+  }, [fetchAgreement]);
+
+  async function handleGenerateAgreement() {
+    setGeneratingAgreement(true);
+    try {
+      const res = await fetch(`/api/v1/agreements/generate/${bookingId}`, { method: "POST" });
+      const json = await res.json();
+      if (json.success && json.data?.agreement) {
+        setAgreementId(json.data.agreement.agreement_id);
+        setAgreementRef(json.data.agreement.agreement_ref);
+        setAgreementStatus("GENERATED");
+        setStatusSuccess(t.agreements.generated);
+        setTimeout(() => setStatusSuccess(null), 3000);
+      } else {
+        setStatusError(json.error || t.bookings.failedStatus);
+        setTimeout(() => setStatusError(null), 4000);
+      }
+    } catch {
+      setStatusError(t.bookings.networkError);
+      setTimeout(() => setStatusError(null), 4000);
+    } finally {
+      setGeneratingAgreement(false);
+    }
+  }
 
   // Record a manual payment
   async function handleRecordPayment() {
@@ -403,6 +453,55 @@ export default function BookingDetailPage() {
       <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
         <BookingTimeline currentStatus={booking.status} />
       </div>
+
+      {/* ── Agreement Quick Link ── */}
+      {booking.status !== "cancelled" && (
+        <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-900/30">
+                <svg className="h-5 w-5 text-indigo-600 dark:text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+                  <path d="M14 2v6h6" />
+                  <path d="M16 13H8M16 17H8M10 9H8" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {t.agreements.title}
+                </h3>
+                {agreementRef && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {agreementRef}
+                  </p>
+                )}
+              </div>
+              {agreementStatus && <AgreementStatusBadge status={agreementStatus} />}
+            </div>
+            <div>
+              {booking.status === "enquiry" ? (
+                <span className="text-xs text-gray-400 dark:text-gray-500">
+                  {t.agreements.confirmFirst}
+                </span>
+              ) : agreementId ? (
+                <Link href={`/bookings/${booking.id}/agreement`}>
+                  <Button variant="secondary" size="sm">
+                    {t.agreements.viewAgreement}
+                  </Button>
+                </Link>
+              ) : (
+                <Button
+                  size="sm"
+                  loading={generatingAgreement}
+                  onClick={handleGenerateAgreement}
+                >
+                  {t.agreements.clickToGenerate}
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Main content grid ── */}
       <div className="mt-6 grid gap-6 lg:grid-cols-3">

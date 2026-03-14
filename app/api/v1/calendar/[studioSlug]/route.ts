@@ -4,6 +4,8 @@
 // Used by: MOD-13 enquiry form date picker
 // ============================================
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest } from "next/server";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import {

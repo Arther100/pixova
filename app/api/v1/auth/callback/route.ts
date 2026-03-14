@@ -3,6 +3,7 @@
 // Exchange a short-lived token for a long-lived JWT session cookie.
 //
 // Why HTML + document.cookie instead of Set-Cookie on a redirect?
+export const dynamic = 'force-dynamic';
 // VS Code Simple Browser runs inside an iframe (origin: vscode-webview://).
 // Chrome treats Set-Cookie from cross-origin iframe responses as
 // third-party cookies and silently drops them — even with SameSite=Lax.

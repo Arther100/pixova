@@ -90,6 +90,7 @@ export interface Database {
           is_listed: boolean;
           total_bookings: number;
           avg_rating: number;
+          gstin: string | null;
           storage_used_bytes: number;
           created_at: string;
           updated_at: string;
@@ -124,6 +125,7 @@ export interface Database {
           is_listed?: boolean;
           total_bookings?: number;
           avg_rating?: number;
+          gstin?: string | null;
           storage_used_bytes?: number;
           created_at?: string;
           updated_at?: string;
@@ -158,6 +160,7 @@ export interface Database {
           is_listed?: boolean;
           total_bookings?: number;
           avg_rating?: number;
+          gstin?: string | null;
           storage_used_bytes?: number;
           updated_at?: string;
         };
@@ -491,6 +494,7 @@ export interface Database {
           notes: string | null;
           internal_notes: string | null;
           team_members: string[];
+          portal_token: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -515,6 +519,7 @@ export interface Database {
           notes?: string | null;
           internal_notes?: string | null;
           team_members?: string[];
+          portal_token?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -539,6 +544,7 @@ export interface Database {
           notes?: string | null;
           internal_notes?: string | null;
           team_members?: string[];
+          portal_token?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -618,56 +624,65 @@ export interface Database {
       // ── 11. agreements ──
       agreements: {
         Row: {
-          id: string;
-          photographer_id: string;
-          booking_id: string | null;
-          client_id: string;
-          title: string;
-          content: string;
+          agreement_id: string;
+          booking_id: string;
+          studio_id: string;
+          agreement_ref: string;
+          agreement_data: Json;
+          pdf_r2_key: string | null;
+          pdf_url: string | null;
           status: string;
-          sent_at: string | null;
-          viewed_at: string | null;
-          signed_at: string | null;
-          signer_name: string | null;
-          signer_ip: string | null;
-          signature_url: string | null;
-          expires_at: string | null;
-          created_at: string;
+          client_viewed_at: string | null;
+          generated_at: string;
+          regenerated_at: string | null;
+        };
+        Insert: {
+          agreement_id?: string;
+          booking_id: string;
+          studio_id: string;
+          agreement_ref: string;
+          agreement_data: Json;
+          pdf_r2_key?: string | null;
+          pdf_url?: string | null;
+          status?: string;
+          client_viewed_at?: string | null;
+          generated_at?: string;
+          regenerated_at?: string | null;
+        };
+        Update: {
+          agreement_id?: string;
+          booking_id?: string;
+          studio_id?: string;
+          agreement_ref?: string;
+          agreement_data?: Json;
+          pdf_r2_key?: string | null;
+          pdf_url?: string | null;
+          status?: string;
+          client_viewed_at?: string | null;
+          generated_at?: string;
+          regenerated_at?: string | null;
+        };
+        Relationships: [];
+      };
+
+      // ── 11b. cancellation_policies ──
+      cancellation_policies: {
+        Row: {
+          policy_id: string;
+          studio_id: string;
+          policy_text: string;
           updated_at: string;
         };
         Insert: {
-          id?: string;
-          photographer_id: string;
-          booking_id?: string | null;
-          client_id: string;
-          title: string;
-          content: string;
-          status?: string;
-          sent_at?: string | null;
-          viewed_at?: string | null;
-          signed_at?: string | null;
-          signer_name?: string | null;
-          signer_ip?: string | null;
-          signature_url?: string | null;
-          expires_at?: string | null;
-          created_at?: string;
+          policy_id?: string;
+          studio_id: string;
+          policy_text: string;
           updated_at?: string;
         };
         Update: {
-          id?: string;
-          photographer_id?: string;
-          booking_id?: string | null;
-          client_id?: string;
-          title?: string;
-          content?: string;
-          status?: string;
-          sent_at?: string | null;
-          viewed_at?: string | null;
-          signed_at?: string | null;
-          signer_name?: string | null;
-          signer_ip?: string | null;
-          signature_url?: string | null;
-          expires_at?: string | null;
+          policy_id?: string;
+          studio_id?: string;
+          policy_text?: string;
           updated_at?: string;
         };
         Relationships: [];
@@ -1347,6 +1362,7 @@ export type Client = Database["public"]["Tables"]["clients"]["Row"];
 export type Booking = Database["public"]["Tables"]["bookings"]["Row"];
 export type CalendarBlock = Database["public"]["Tables"]["calendar_blocks"]["Row"];
 export type Agreement = Database["public"]["Tables"]["agreements"]["Row"];
+export type CancellationPolicy = Database["public"]["Tables"]["cancellation_policies"]["Row"];
 export type Gallery = Database["public"]["Tables"]["galleries"]["Row"];
 export type GalleryPhoto = Database["public"]["Tables"]["gallery_photos"]["Row"];
 export type GalleryAccessLog = Database["public"]["Tables"]["gallery_access_logs"]["Row"];
@@ -1373,6 +1389,7 @@ export type ClientInsert = Database["public"]["Tables"]["clients"]["Insert"];
 export type BookingInsert = Database["public"]["Tables"]["bookings"]["Insert"];
 export type CalendarBlockInsert = Database["public"]["Tables"]["calendar_blocks"]["Insert"];
 export type AgreementInsert = Database["public"]["Tables"]["agreements"]["Insert"];
+export type CancellationPolicyInsert = Database["public"]["Tables"]["cancellation_policies"]["Insert"];
 export type GalleryInsert = Database["public"]["Tables"]["galleries"]["Insert"];
 export type GalleryPhotoInsert = Database["public"]["Tables"]["gallery_photos"]["Insert"];
 export type GalleryAccessLogInsert = Database["public"]["Tables"]["gallery_access_logs"]["Insert"];
