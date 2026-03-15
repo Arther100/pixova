@@ -16,6 +16,7 @@ import {
   notFoundResponse,
   serverErrorResponse,
 } from "@/lib/api-helpers";
+import { generateReceiptNumber, derivePaymentStatus } from "@/lib/payments";
 
 // ── Validation schema ──
 const recordPaymentSchema = z.object({
@@ -116,6 +117,9 @@ export async function POST(
       }
     }
 
+    // Generate receipt number
+    const receiptNumber = await generateReceiptNumber(admin, session.photographerId);
+
     // Insert payment record
     const { data: payment, error: prErr } = await admin
       .from("payment_records")
@@ -127,13 +131,16 @@ export async function POST(
         currency: "INR",
         status: "captured", // manual payments are instantly captured
         method,
+        payment_type: "ADVANCE",
+        receipt_number: receiptNumber,
+        recorded_by: "PHOTOGRAPHER",
         payment_date: paymentDate || new Date().toISOString().split("T")[0],
         description: description || (allowOverpay && overpayReason
           ? `Extra payment: ${overpayReason}`
           : `Manual ${method} payment`),
         notes: notes || null,
       })
-      .select("id, amount, method, status, payment_date, description, notes, created_at")
+      .select("id, amount, method, status, payment_type, receipt_number, recorded_by, payment_date, description, notes, created_at")
       .single();
 
     if (prErr) {
@@ -144,8 +151,10 @@ export async function POST(
     // Update paid_amount on the booking
     const newPaidAmount = booking.paid_amount + amount;
     const isOverpayment = amount > booking.balance_amount;
+    const newPaymentStatus = derivePaymentStatus(booking.total_amount, newPaidAmount);
     const updateFields: Record<string, unknown> = {
       paid_amount: newPaidAmount,
+      payment_status: newPaymentStatus,
       updated_at: new Date().toISOString(),
     };
 

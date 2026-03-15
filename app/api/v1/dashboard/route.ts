@@ -100,6 +100,16 @@ export async function GET() {
       hasPackagesPromise,
     ]);
 
+    // ── Payment stats (total revenue & outstanding) ──
+    const { data: revenueRows } = await admin
+      .from("bookings")
+      .select("paid_amount, balance_amount")
+      .eq("photographer_id", photographer.id)
+      .neq("status", "cancelled");
+
+    const totalRevenue = (revenueRows || []).reduce((s, r) => s + (r.paid_amount || 0), 0);
+    const totalOutstanding = (revenueRows || []).reduce((s, r) => s + Math.max(0, r.balance_amount || 0), 0);
+
     let planName = "Starter";
     let bookingsLimit = 10;
 
@@ -156,6 +166,8 @@ export async function GET() {
         totalBookings: totalBookingsRes.count ?? 0,
         pendingEnquiries: enquiriesRes.count ?? 0,
         unreadNotifications: notificationsRes.count ?? 0,
+        totalRevenue,
+        totalOutstanding,
       },
       profileScore,
     }, 200, "medium");

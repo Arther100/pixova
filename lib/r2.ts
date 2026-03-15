@@ -23,6 +23,11 @@ function getR2Client(): S3Client {
       accessKeyId: process.env.R2_ACCESS_KEY_ID!,
       secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
     },
+    // Disable automatic CRC32 checksums — they break presigned PUT URLs
+    // (SDK calculates CRC32 of empty body at presign time, R2 then rejects
+    //  the actual upload because the file's CRC32 doesn't match)
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
   });
 
   return r2Client;
@@ -171,4 +176,33 @@ export function invoicePdfKey(
   invoiceId: string
 ): string {
   return `photographers/${photographerId}/invoices/${invoiceId}.pdf`;
+}
+
+// ---------- Photo URL ----------
+/**
+ * Returns public URL if R2 public access enabled,
+ * otherwise returns a signed URL.
+ */
+export async function getPhotoUrl(
+  key: string,
+  expiresIn = 14400
+): Promise<string> {
+  // Always use presigned URLs — the public CDN domain (R2_PUBLIC_URL)
+  // needs R2 bucket public access enabled + custom domain configured.
+  // Until that's set up, presigned S3 URLs are the reliable path.
+  return getPresignedDownloadUrl(key, expiresIn);
+}
+
+// ---------- Batch delete ----------
+export async function deletePhotosFromR2(keys: string[]): Promise<void> {
+  if (keys.length === 0) return;
+  const batches: string[][] = [];
+  for (let i = 0; i < keys.length; i += 10) {
+    batches.push(keys.slice(i, i + 10));
+  }
+  for (const batch of batches) {
+    await Promise.allSettled(
+      batch.map((key) => deleteFromR2(key))
+    );
+  }
 }

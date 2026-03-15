@@ -491,6 +491,7 @@ export interface Database {
           advance_amount: number;
           paid_amount: number;
           balance_amount: number;
+          payment_status: string | null;
           notes: string | null;
           internal_notes: string | null;
           team_members: string[];
@@ -516,6 +517,7 @@ export interface Database {
           total_amount?: number;
           advance_amount?: number;
           paid_amount?: number;
+          payment_status?: string | null;
           notes?: string | null;
           internal_notes?: string | null;
           team_members?: string[];
@@ -541,6 +543,7 @@ export interface Database {
           total_amount?: number;
           advance_amount?: number;
           paid_amount?: number;
+          payment_status?: string | null;
           notes?: string | null;
           internal_notes?: string | null;
           team_members?: string[];
@@ -711,6 +714,10 @@ export interface Database {
           expires_at: string | null;
           published_at: string | null;
           created_at: string;
+          password: string | null;
+          password_hint: string | null;
+          client_notified: boolean;
+          download_enabled: boolean;
           updated_at: string;
         };
         Insert: {
@@ -733,6 +740,10 @@ export interface Database {
           watermark_enabled?: boolean;
           expires_at?: string | null;
           published_at?: string | null;
+          password?: string | null;
+          password_hint?: string | null;
+          client_notified?: boolean;
+          download_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -756,6 +767,10 @@ export interface Database {
           watermark_enabled?: boolean;
           expires_at?: string | null;
           published_at?: string | null;
+          password?: string | null;
+          password_hint?: string | null;
+          client_notified?: boolean;
+          download_enabled?: boolean;
           updated_at?: string;
         };
         Relationships: [];
@@ -781,6 +796,8 @@ export interface Database {
           is_favorited: boolean;
           caption: string | null;
           exif_data: Json | null;
+          client_visible: boolean;
+          deleted_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -801,6 +818,8 @@ export interface Database {
           is_favorited?: boolean;
           caption?: string | null;
           exif_data?: Json | null;
+          client_visible?: boolean;
+          deleted_at?: string | null;
           created_at?: string;
         };
         Update: {
@@ -821,6 +840,8 @@ export interface Database {
           is_favorited?: boolean;
           caption?: string | null;
           exif_data?: Json | null;
+          client_visible?: boolean;
+          deleted_at?: string | null;
         };
         Relationships: [];
       };
@@ -874,6 +895,10 @@ export interface Database {
           currency: string;
           status: string;
           method: string;
+          payment_type: string | null;
+          receipt_number: string | null;
+          recorded_by: string | null;
+          razorpay_status: string | null;
           razorpay_order_id: string | null;
           razorpay_payment_id: string | null;
           razorpay_signature: string | null;
@@ -895,6 +920,10 @@ export interface Database {
           currency?: string;
           status?: string;
           method?: string;
+          payment_type?: string | null;
+          receipt_number?: string | null;
+          recorded_by?: string | null;
+          razorpay_status?: string | null;
           razorpay_order_id?: string | null;
           razorpay_payment_id?: string | null;
           razorpay_signature?: string | null;
@@ -916,6 +945,10 @@ export interface Database {
           currency?: string;
           status?: string;
           method?: string;
+          payment_type?: string | null;
+          receipt_number?: string | null;
+          recorded_by?: string | null;
+          razorpay_status?: string | null;
           razorpay_order_id?: string | null;
           razorpay_payment_id?: string | null;
           razorpay_signature?: string | null;
@@ -925,6 +958,52 @@ export interface Database {
           notes?: string | null;
           metadata?: Json;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      // ── 15b. razorpay_orders ──
+      razorpay_orders: {
+        Row: {
+          id: string;
+          booking_id: string;
+          photographer_id: string;
+          razorpay_order_id: string;
+          amount_paise: number;
+          currency: string;
+          status: string;
+          payment_type: string | null;
+          short_url: string | null;
+          expires_at: string | null;
+          created_at: string;
+          paid_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          booking_id: string;
+          photographer_id: string;
+          razorpay_order_id: string;
+          amount_paise: number;
+          currency?: string;
+          status?: string;
+          payment_type?: string | null;
+          short_url?: string | null;
+          expires_at?: string | null;
+          created_at?: string;
+          paid_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          booking_id?: string;
+          photographer_id?: string;
+          razorpay_order_id?: string;
+          amount_paise?: number;
+          currency?: string;
+          status?: string;
+          payment_type?: string | null;
+          short_url?: string | null;
+          expires_at?: string | null;
+          paid_at?: string | null;
         };
         Relationships: [];
       };

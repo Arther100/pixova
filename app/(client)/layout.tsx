@@ -19,7 +19,7 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white text-gray-900" data-theme="light">
       {children}
 
       {/* Minimal footer */}

@@ -14,8 +14,8 @@ import { AgreementStatusBadge } from "@/components/AgreementStatusBadge";
 import { BookingTimeline } from "@/components/BookingTimeline";
 import { ClientDetailsForm } from "@/components/ClientDetailsForm";
 import { Button } from "@/components/ui";
-import { Input } from "@/components/ui";
-import { formatRupees, paiseToRupees, rupeesToPaise } from "@/utils/currency";
+import { PaymentStatusBadge } from "@/components/payments/PaymentStatusBadge";
+import { formatRupees } from "@/utils/currency";
 import { formatDate, formatDateTime } from "@/utils/date";
 
 
@@ -83,26 +83,6 @@ export default function BookingDetailPage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
 
-  // Payment state
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentLoading, setPaymentLoading] = useState(false);
-  const [paymentAmount, setPaymentAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("upi");
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split("T")[0]);
-  const [paymentNote, setPaymentNote] = useState("");
-  const [isOverpay, setIsOverpay] = useState(false);
-  const [overpayReason, setOverpayReason] = useState("");
-  interface PaymentRecord {
-    id: string;
-    amount: number;
-    method: string;
-    status: string;
-    payment_date: string;
-    description: string | null;
-    notes: string | null;
-    created_at: string;
-  }
-  const [payments, setPayments] = useState<PaymentRecord[]>([]);
 
   // Agreement state
   const [agreementId, setAgreementId] = useState<string | null>(null);
@@ -135,21 +115,6 @@ export default function BookingDetailPage() {
   useEffect(() => {
     fetchBooking();
   }, [fetchBooking]);
-
-  // Fetch payment history
-  const fetchPayments = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/v1/bookings/${bookingId}/payments`);
-      const json = await res.json();
-      if (json.success) setPayments(json.data.payments || []);
-    } catch {
-      // non-critical
-    }
-  }, [bookingId]);
-
-  useEffect(() => {
-    fetchPayments();
-  }, [fetchPayments]);
 
   // Fetch agreement for this booking
   const fetchAgreement = useCallback(async () => {
@@ -194,72 +159,7 @@ export default function BookingDetailPage() {
     }
   }
 
-  // Record a manual payment
-  async function handleRecordPayment() {
-    const amountPaise = rupeesToPaise(parseFloat(paymentAmount));
-    if (!paymentAmount || isNaN(amountPaise) || amountPaise < 100) {
-      setStatusError(t.bookings.minPayment);
-      setTimeout(() => setStatusError(null), 3000);
-      return;
-    }
-
-    setPaymentLoading(true);
-    try {
-      const res = await fetch(`/api/v1/bookings/${bookingId}/payments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: amountPaise,
-          method: paymentMethod,
-          paymentDate: paymentDate,
-          notes: paymentNote || undefined,
-          allowOverpay: isOverpay || undefined,
-          overpayReason: isOverpay ? overpayReason : undefined,
-        }),
-      });
-      const json = await res.json();
-
-      if (!res.ok || !json.success) {
-        setStatusError(json.error || t.bookings.failedPayment);
-        setTimeout(() => setStatusError(null), 4000);
-        return;
-      }
-
-      // Update booking amounts locally
-      if (booking && json.data.booking) {
-        const updated = {
-          ...booking,
-          total_amount: json.data.booking.total_amount ?? booking.total_amount,
-          paid_amount: json.data.booking.paid_amount,
-          balance_amount: json.data.booking.balance_amount,
-        };
-        setBooking(updated);
-        bookingCache.set(bookingId, updated);
-      }
-
-      // Add new payment to list
-      if (json.data.payment) {
-        setPayments((prev) => [json.data.payment, ...prev]);
-      }
-
-      // Reset modal
-      setShowPaymentModal(false);
-      setPaymentAmount("");
-      setPaymentMethod("upi");
-      setPaymentNote("");
-      setPaymentDate(new Date().toISOString().split("T")[0]);
-      setIsOverpay(false);
-      setOverpayReason("");
-
-      setStatusSuccess(`Payment of ₹${parseFloat(paymentAmount).toLocaleString("en-IN")} recorded!`);
-      setTimeout(() => setStatusSuccess(null), 3000);
-    } catch {
-      setStatusError(t.bookings.networkError);
-      setTimeout(() => setStatusError(null), 4000);
-    } finally {
-      setPaymentLoading(false);
-    }
-  }
+  // Record a manual payment — now in dedicated /bookings/[id]/payments page
 
   async function handleStatusChange(newStatus: string, reason?: string) {
     setStatusLoading(true);
@@ -503,6 +403,36 @@ export default function BookingDetailPage() {
         </div>
       )}
 
+      {/* ── Gallery Quick Link ── */}
+      {booking.status !== "cancelled" && booking.status !== "enquiry" && (
+        <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-900/30">
+                <svg className="h-5 w-5 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                  <circle cx="9" cy="9" r="2" />
+                  <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  {t.galleries.title}
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {t.galleries.uploadAndShare}
+                </p>
+              </div>
+            </div>
+            <Link href={`/galleries/${booking.id}`}>
+              <Button variant="secondary" size="sm">
+                {t.galleries.openGallery}
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* ── Main content grid ── */}
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         {/* Left: Booking details (2 cols) */}
@@ -552,131 +482,48 @@ export default function BookingDetailPage() {
             </div>
           </div>
 
-          {/* Financial details */}
+          {/* Payments Quick Link Card */}
           <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                {t.bookings.paymentSummary}
-              </h3>
-              {booking.status !== "cancelled" && (
-                <button
-                  onClick={() => {
-                    setShowPaymentModal(true);
-                    // Auto-enable overpay when fully paid
-                    if (booking.balance_amount <= 0) {
-                      setIsOverpay(true);
-                    }
-                  }}
-                  className="flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-green-700"
-                >
-                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-green-50 dark:bg-green-900/30">
+                  <svg className="h-5 w-5 text-green-600 dark:text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                   </svg>
-                  {t.bookings.recordPayment}
-                </button>
-              )}
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <FinanceCard
-                label={t.bookings.totalAmount}
-                value={formatRupees(booking.total_amount)}
-                variant="default"
-              />
-              <FinanceCard
-                label={t.bookings.advanceExpected}
-                value={formatRupees(booking.advance_amount)}
-                variant="default"
-              />
-              <FinanceCard
-                label={t.bookings.paid}
-                value={formatRupees(booking.paid_amount)}
-                variant="success"
-              />
-              <FinanceCard
-                label={t.bookings.balanceDue}
-                value={formatRupees(booking.balance_amount)}
-                variant={booking.balance_amount > 0 ? "warning" : "success"}
-              />
-            </div>
-
-            {/* Extra paid indicator */}
-            {booking.paid_amount > booking.total_amount && (
-              <div className="mt-3 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 dark:border-amber-800 dark:bg-amber-900/20">
-                <svg className="h-4 w-4 shrink-0 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 8v4M12 16h.01" />
-                </svg>
-                <p className="text-sm text-amber-700 dark:text-amber-300">
-                  <span className="font-medium">{t.bookings.extraPaid}</span>{" "}
-                  {formatRupees(booking.paid_amount - booking.total_amount)} {t.bookings.overTotalAmount}
-                </p>
-              </div>
-            )}
-
-            {booking.balance_amount === 0 && booking.paid_amount > 0 && (
-              <div className="mt-2 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2.5 dark:border-green-800 dark:bg-green-900/20">
-                <svg className="h-4 w-4 shrink-0 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 6 9 17l-5-5" />
-                </svg>
-                <p className="text-sm font-medium text-green-700 dark:text-green-300">
-                  {t.bookings.fullyPaid}
-                </p>
-              </div>
-            )}
-
-            {/* Payment History */}
-            {payments.length > 0 && (
-              <div className="mt-5 border-t border-gray-100 pt-4 dark:border-gray-800">
-                <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
-                  {t.bookings.paymentHistory}
-                </h4>
-                <div className="space-y-2">
-                  {payments.map((p) => (
-                    <div
-                      key={p.id}
-                      className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2.5 dark:bg-gray-800"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-                          p.status === "captured"
-                            ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
-                            : "bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400"
-                        }`}>
-                          <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                          </svg>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {formatRupees(p.amount)}
-                          </p>
-                          <p className="text-[11px] text-gray-500 dark:text-gray-400">
-                            {p.method.replace("_", " ").replace(/^\w/, (c) => c.toUpperCase())} · {formatDate(p.payment_date)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-0.5">
-                        {p.description && p.description.startsWith("Extra payment:") && (
-                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                            {t.bookings.extra}
-                          </span>
-                        )}
-                        {(p.description && p.description.startsWith("Extra payment:")) && (
-                          <p className="max-w-[200px] truncate text-[11px] text-amber-600 dark:text-amber-400">
-                            {p.description.replace("Extra payment: ", "")}
-                          </p>
-                        )}
-                        {p.notes && (
-                          <p className="max-w-[200px] truncate text-xs text-gray-400 dark:text-gray-500">
-                            {p.notes}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      {t.bookings.paymentSummary}
+                    </h3>
+                    <PaymentStatusBadge
+                      status={
+                        booking.paid_amount <= 0
+                          ? "PENDING"
+                          : booking.paid_amount >= booking.total_amount && booking.total_amount > 0
+                            ? booking.paid_amount > booking.total_amount ? "OVERPAID" : "PAID"
+                            : "PARTIAL"
+                      }
+                      size="sm"
+                    />
+                  </div>
+                  <div className="mt-1 flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                    <span>Total: {formatRupees(booking.total_amount)}</span>
+                    <span className="text-green-600 dark:text-green-400">
+                      Paid: {formatRupees(booking.paid_amount)}
+                    </span>
+                    <span className={booking.balance_amount > 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}>
+                      Due: {formatRupees(booking.balance_amount)}
+                    </span>
+                  </div>
                 </div>
               </div>
-            )}
+              <Link href={`/bookings/${booking.id}/payments`}>
+                <Button variant="secondary" size="sm">
+                  View Payments
+                </Button>
+              </Link>
+            </div>
           </div>
 
           {/* Notes */}
@@ -714,169 +561,6 @@ export default function BookingDetailPage() {
           <ClientDetailsForm client={booking.client} />
         </div>
       </div>
-
-      {/* ── Record Payment Modal ── */}
-      {showPaymentModal && booking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-gray-900">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                <svg className="h-5 w-5 text-green-600 dark:text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  {t.bookings.recordPayment}
-                </h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  {booking.balance_amount > 0
-                    ? `${t.bookings.balanceDueLabel} ${formatRupees(booking.balance_amount)}`
-                    : t.bookings.fullyPaidExtra}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-5 space-y-4">
-              {/* Amount — capped to balance unless overpay is on */}
-              {(() => {
-                const maxRupees = paiseToRupees(booking.balance_amount);
-                return (
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {t.bookings.amountLabel}
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      max={isOverpay ? undefined : maxRupees}
-                      value={paymentAmount}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (!isOverpay && val && parseFloat(val) > maxRupees) {
-                          setPaymentAmount(maxRupees.toString());
-                        } else {
-                          setPaymentAmount(val);
-                        }
-                      }}
-                      placeholder={`Max ₹${maxRupees.toLocaleString("en-IN")}`}
-                      className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
-                    />
-                    {!isOverpay && (
-                      <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-                        {t.bookings.maximum} ₹{maxRupees.toLocaleString("en-IN")}
-                      </p>
-                    )}
-                  </div>
-                );
-              })()}
-
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {t.bookings.paymentMethod}
-                </label>
-                <select
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="select-styled w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-                >
-                  <option value="upi">{t.bookings.upi}</option>
-                  <option value="cash">{t.bookings.cash}</option>
-                  <option value="bank_transfer">{t.bookings.bankTransfer}</option>
-                  <option value="cheque">{t.bookings.cheque}</option>
-                  <option value="other">{t.bookings.other}</option>
-                </select>
-              </div>
-
-              <Input
-                label={t.bookings.paymentDate}
-                type="date"
-                value={paymentDate}
-                onChange={(e) => setPaymentDate(e.target.value)}
-              />
-
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {t.bookings.noteOptional}
-                </label>
-                <textarea
-                  value={paymentNote}
-                  onChange={(e) => setPaymentNote(e.target.value)}
-                  rows={2}
-                  maxLength={500}
-                  placeholder="e.g., Advance via Google Pay"
-                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
-                />
-              </div>
-
-              {/* Overpay toggle */}
-              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
-                <label className="flex cursor-pointer items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={isOverpay}
-                    onChange={(e) => {
-                      setIsOverpay(e.target.checked);
-                      if (!e.target.checked) {
-                        setOverpayReason("");
-                        // Cap amount back to balance
-                        const max = paiseToRupees(booking.balance_amount);
-                        if (paymentAmount && parseFloat(paymentAmount) > max) {
-                          setPaymentAmount(max.toString());
-                        }
-                      }
-                    }}
-                    className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
-                  />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    {t.bookings.payingExtra}
-                  </span>
-                </label>
-                {isOverpay && (
-                  <div className="mt-3">
-                    <label className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
-                      {t.bookings.extraReason}
-                    </label>
-                    <input
-                      type="text"
-                      value={overpayReason}
-                      onChange={(e) => setOverpayReason(e.target.value)}
-                      placeholder="e.g., Extra hours, additional editing"
-                      maxLength={200}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-5 flex items-center justify-end gap-3">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  setShowPaymentModal(false);
-                  setPaymentAmount("");
-                  setPaymentNote("");
-                  setIsOverpay(false);
-                  setOverpayReason("");
-                }}
-                disabled={paymentLoading}
-              >
-                {t.cancel}
-              </Button>
-              <Button
-                size="sm"
-                loading={paymentLoading}
-                disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || (isOverpay && !overpayReason.trim())}
-                onClick={handleRecordPayment}
-              >
-                {t.bookings.recordPayment}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Cancel Modal ── */}
       {showCancelModal && (
@@ -937,29 +621,4 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function FinanceCard({
-  label,
-  value,
-  variant,
-}: {
-  label: string;
-  value: string;
-  variant: "default" | "success" | "warning";
-}) {
-  const colors = {
-    default: "text-gray-900 dark:text-gray-100",
-    success: "text-green-600 dark:text-green-400",
-    warning: "text-amber-600 dark:text-amber-400",
-  };
 
-  return (
-    <div className="rounded-lg bg-gray-50 p-3 dark:bg-gray-800">
-      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-        {label}
-      </p>
-      <p className={`mt-1 text-lg font-semibold ${colors[variant]}`}>
-        {value}
-      </p>
-    </div>
-  );
-}

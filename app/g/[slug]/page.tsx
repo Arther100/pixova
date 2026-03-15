@@ -1,6 +1,6 @@
 // ============================================
-// Client gallery page — public photo viewer
-// URL: /{studioSlug}/{gallerySlug}
+// /g/[slug] — Public client gallery page
+// No auth required. Clean shareable URL.
 // ============================================
 
 "use client";
@@ -30,9 +30,9 @@ interface GalleryInfo {
   selection_limit: number | null;
 }
 
-export default function ClientGalleryPage() {
+export default function PublicGalleryPage() {
   const params = useParams();
-  const gallerySlug = params.galleryId as string;
+  const slug = params.slug as string;
 
   const [gallery, setGallery] = useState<GalleryInfo | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -45,7 +45,7 @@ export default function ClientGalleryPage() {
   const fetchGallery = useCallback(
     async (pin?: string) => {
       try {
-        const url = new URL(`/api/v1/gallery/${gallerySlug}`, window.location.origin);
+        const url = new URL(`/api/v1/gallery/${slug}`, window.location.origin);
         if (pin) url.searchParams.set("pin", pin);
 
         const res = await fetch(url.toString());
@@ -76,7 +76,7 @@ export default function ClientGalleryPage() {
         setPinLoading(false);
       }
     },
-    [gallerySlug]
+    [slug]
   );
 
   useEffect(() => {
@@ -90,7 +90,7 @@ export default function ClientGalleryPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-white">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
       </div>
     );
@@ -98,7 +98,7 @@ export default function ClientGalleryPage() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center px-4 text-center">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-white px-4 text-center">
         <span className="text-5xl">📷</span>
         <h2 className="mt-4 text-lg font-semibold text-gray-900">{error}</h2>
       </div>
@@ -118,50 +118,65 @@ export default function ClientGalleryPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      {/* Header */}
-      <div className="text-center">
-        <h1 className="font-display text-2xl font-bold text-gray-900">
-          {gallery?.title}
-        </h1>
-        {gallery?.description && (
-          <p className="mt-2 text-sm text-gray-500">{gallery.description}</p>
-        )}
-        <p className="mt-1 text-xs text-gray-400">
-          {photos.length} photos
-        </p>
-      </div>
-
-      {/* Photo grid */}
-      <div className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {photos.map((photo, idx) => (
-          <div
-            key={photo.id}
-            className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg bg-gray-100"
-            onClick={() => setLightboxIndex(idx)}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={photo.thumbnail_url || photo.url}
-              alt={photo.filename}
-              className="h-full w-full object-cover transition-transform group-hover:scale-105"
-              loading="lazy"
-            />
-          </div>
-        ))}
-      </div>
-
-      {photos.length === 0 && (
-        <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-12 text-center">
-          <span className="text-5xl">📷</span>
-          <h3 className="mt-4 text-lg font-semibold text-gray-900">
-            No photos yet
-          </h3>
-          <p className="mt-2 text-sm text-gray-500">
-            The photographer hasn&apos;t uploaded photos to this gallery yet.
+    <div className="min-h-screen bg-white">
+      <div className="mx-auto max-w-7xl px-4 py-8">
+        {/* Header */}
+        <div className="text-center">
+          <h1 className="font-display text-2xl font-bold text-gray-900">
+            {gallery?.title}
+          </h1>
+          {gallery?.description && (
+            <p className="mt-2 text-sm text-gray-500">{gallery.description}</p>
+          )}
+          <p className="mt-1 text-xs text-gray-400">
+            {photos.length} photos
           </p>
         </div>
-      )}
+
+        {/* Photo grid */}
+        <div className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          {photos.map((photo, idx) => (
+            <div
+              key={photo.id}
+              className="group relative aspect-square cursor-pointer overflow-hidden rounded-lg bg-gray-100"
+              onClick={() => setLightboxIndex(idx)}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={photo.thumbnail_url || photo.url}
+                alt={photo.filename}
+                className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                loading="lazy"
+              />
+            </div>
+          ))}
+        </div>
+
+        {photos.length === 0 && (
+          <div className="mt-8 rounded-xl border border-gray-200 bg-gray-50 p-12 text-center">
+            <span className="text-5xl">📷</span>
+            <h3 className="mt-4 text-lg font-semibold text-gray-900">
+              No photos yet
+            </h3>
+            <p className="mt-2 text-sm text-gray-500">
+              The photographer hasn&apos;t uploaded photos to this gallery yet.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <footer className="border-t border-gray-100 py-4 text-center text-xs text-gray-400">
+        Powered by{" "}
+        <a
+          href="https://pixova.in"
+          className="font-medium text-brand-600 hover:underline"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Pixova
+        </a>
+      </footer>
 
       {/* Lightbox */}
       {lightboxIndex !== null && photos[lightboxIndex] && (

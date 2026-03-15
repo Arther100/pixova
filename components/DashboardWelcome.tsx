@@ -8,6 +8,7 @@
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import { ProfileCompletionBar } from "./ProfileCompletionBar";
+import { formatRupees } from "@/utils/currency";
 
 export interface DashboardData {
   photographer: {
@@ -31,6 +32,8 @@ export interface DashboardData {
     totalBookings: number;
     pendingEnquiries: number;
     unreadNotifications: number;
+    totalRevenue: number;
+    totalOutstanding: number;
   };
   profileScore: number;
 }
@@ -85,7 +88,7 @@ export function DashboardWelcome({ data }: DashboardWelcomeProps) {
       )}
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
         <StatCard
           label={t.dashboard.totalBookings}
           value={stats.totalBookings.toString()}
@@ -123,6 +126,24 @@ export function DashboardWelcome({ data }: DashboardWelcomeProps) {
           iconBg="bg-emerald-50 dark:bg-emerald-900/30"
           icon={
             <svg className="h-4 w-4 text-emerald-600 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m7.5 4.27 9 5.15" /><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" /><path d="m3.3 7 8.7 5 8.7-5" /><path d="M12 22V12" /></svg>
+          }
+        />
+        <StatCard
+          label="Total Revenue"
+          value={formatRupees(stats.totalRevenue)}
+          href="/payments"
+          iconBg="bg-green-50 dark:bg-green-900/30"
+          icon={
+            <svg className="h-4 w-4 text-green-600 dark:text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+          }
+        />
+        <StatCard
+          label="Outstanding"
+          value={formatRupees(stats.totalOutstanding)}
+          href="/payments"
+          iconBg={stats.totalOutstanding > 0 ? "bg-red-50 dark:bg-red-900/30" : "bg-green-50 dark:bg-green-900/30"}
+          icon={
+            <svg className={`h-4 w-4 ${stats.totalOutstanding > 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
           }
         />
       </div>

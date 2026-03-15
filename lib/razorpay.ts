@@ -101,3 +101,65 @@ export async function cancelSubscription(
     cancelAtCycleEnd
   );
 }
+
+// ---------- Create Payment Link ----------
+export async function createPaymentLink(params: {
+  amountPaise: number;
+  bookingRef: string;
+  clientName: string;
+  clientMobile: string;
+  clientEmail?: string;
+  description: string;
+  notifyViaSms?: boolean;
+  notifyViaEmail?: boolean;
+  expiryMinutes?: number; // default 4320 = 72 hours
+}): Promise<{
+  id: string;
+  short_url: string;
+  amount: number;
+  status: string;
+}> {
+  const rzp = getRazorpay();
+  const expireBy =
+    Math.floor(Date.now() / 1000) +
+    (params.expiryMinutes ?? 4320) * 60;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const link = await (rzp as any).paymentLink.create({
+    amount: params.amountPaise,
+    currency: "INR",
+    accept_partial: false,
+    description: params.description,
+    customer: {
+      name: params.clientName,
+      contact: params.clientMobile,
+      email: params.clientEmail ?? "",
+    },
+    notify: {
+      sms: params.notifyViaSms ?? false,
+      email: params.notifyViaEmail ?? false,
+    },
+    reminder_enable: true,
+    notes: {
+      booking_ref: params.bookingRef,
+    },
+    expire_by: expireBy,
+    reference_id: params.bookingRef,
+  });
+
+  return {
+    id: link.id,
+    short_url: link.short_url,
+    amount: link.amount,
+    status: link.status,
+  };
+}
+
+// ---------- Cancel Payment Link ----------
+export async function cancelPaymentLink(
+  paymentLinkId: string
+): Promise<void> {
+  const rzp = getRazorpay();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (rzp as any).paymentLink.cancel(paymentLinkId);
+}
