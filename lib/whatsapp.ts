@@ -76,13 +76,7 @@ export async function sendOtp(
   otp: string,
   userName = "User"
 ): Promise<SendOtpResult> {
-  // Dev mode: skip external APIs — OTP is already logged in send-otp route
-  if (process.env.NODE_ENV === "development") {
-    return { success: true, channel: "whatsapp" };
-  }
-
-  // Production: send via WhatsApp
-  const whatsappSent = await sendWhatsApp(phone, "otp_verification", [otp], userName);
+  const whatsappSent = await sendWhatsApp(phone, "otp_verification2", [userName, otp, "10"], userName);
 
   if (whatsappSent) {
     return { success: true, channel: "whatsapp" };

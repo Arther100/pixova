@@ -218,11 +218,14 @@ const en = {
     galleries: "Galleries",
     clients: "Clients",
     payments: "Payments",
+    messages: "Messages",
+    reviews: "Reviews",
     settings: "Settings",
     appearance: "Appearance",
     logout: "Logout",
     photographer: "Photographer",
     manageAccount: "Manage your account",
+    notifications: "Notifications",
   },
 
   // Bookings

@@ -64,6 +64,22 @@ function IconSettings({ className }: { className?: string }) {
   );
 }
 
+function IconMessages({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+function IconStar({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  );
+}
+
 function IconCalendarView({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -80,6 +96,8 @@ const NAV_KEYS = [
   { href: "/galleries", key: "galleries" as const, Icon: IconImage },
   { href: "/clients", key: "clients" as const, Icon: IconUsers },
   { href: "/payments", key: "payments" as const, Icon: IconWallet },
+  { href: "/messages", key: "messages" as const, Icon: IconMessages },
+  { href: "/reviews", key: "reviews" as const, Icon: IconStar },
   { href: "/settings", key: "settings" as const, Icon: IconSettings },
 ];
 
@@ -111,6 +129,7 @@ export default function PhotographerLayout({
   const profileRef = useRef<HTMLDivElement>(null);
   const [profileName, setProfileName] = useState("");
   const [profileInitial, setProfileInitial] = useState("");
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   // Close profile dropdown on outside click
   useEffect(() => {
@@ -144,6 +163,14 @@ export default function PhotographerLayout({
     PRELOAD_APIS.forEach((url) => {
       fetch(url, { priority: "low" as RequestPriority }).catch(() => {});
     });
+
+    // Fetch unread message count
+    fetch("/api/v1/messages/unread")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success) setUnreadMessages(json.data?.unread_count || 0);
+      })
+      .catch(() => {});
   }, []);
 
   // Hide layout chrome on onboarding page
@@ -222,6 +249,11 @@ export default function PhotographerLayout({
               >
                 <item.Icon className={`h-[18px] w-[18px] shrink-0 ${isActive ? "text-brand-600 dark:text-brand-300" : ""}`} />
                 <span>{t.nav[item.key]}</span>
+                {item.key === "messages" && unreadMessages > 0 && (
+                  <span className="ml-auto inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                    {unreadMessages > 99 ? "99+" : unreadMessages}
+                  </span>
+                )}
               </Link>
             );
           })}

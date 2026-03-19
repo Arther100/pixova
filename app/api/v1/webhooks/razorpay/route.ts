@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyWebhookSignature } from "@/lib/razorpay";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { generateReceiptNumber, derivePaymentStatus } from "@/lib/payments";
+import { notifyPaymentReceived } from "@/lib/notifications";
 
 export async function POST(request: NextRequest) {
   try {
@@ -113,6 +114,38 @@ export async function POST(request: NextRequest) {
               updated_at: new Date().toISOString(),
             })
             .eq("id", order.booking_id);
+
+          // NOTIFICATION: Payment received via Razorpay (fire-and-forget)
+          const { data: studioForNotif } = await supabase
+            .from('studio_profiles')
+            .select('id, phone')
+            .eq('photographer_id', order.photographer_id)
+            .single();
+
+          const { data: clientForNotif } = await supabase
+            .from('clients')
+            .select('name')
+            .eq('id', bookingForClient?.client_id ?? '')
+            .single();
+
+          const { data: bookingForRef } = await supabase
+            .from('bookings')
+            .select('booking_ref, balance_amount')
+            .eq('id', order.booking_id)
+            .single();
+
+          if (studioForNotif && clientForNotif) {
+            notifyPaymentReceived({
+              studioId: studioForNotif.id,
+              bookingId: order.booking_id,
+              bookingRef: bookingForRef?.booking_ref || order.booking_id.slice(0, 8).toUpperCase(),
+              clientName: clientForNotif.name,
+              amountPaid: amountPaid,
+              balanceAmount: bookingForRef?.balance_amount ?? 0,
+              receiptNumber,
+              photographerMobile: studioForNotif.phone,
+            }).catch(err => console.error('[notify payment webhook]', err));
+          }
         }
 
         break;

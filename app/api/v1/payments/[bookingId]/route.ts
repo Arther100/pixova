@@ -16,6 +16,7 @@ import {
   serverErrorResponse,
 } from "@/lib/api-helpers";
 import { generateReceiptNumber, derivePaymentStatus } from "@/lib/payments";
+import { notifyPaymentReceived } from "@/lib/notifications";
 
 interface Params {
   params: { bookingId: string };
@@ -254,6 +255,40 @@ export async function POST(request: NextRequest, { params }: Params) {
       .select("paid_amount, balance_amount, payment_status")
       .eq("id", bookingId)
       .single();
+
+    // NOTIFICATION: Payment received (fire-and-forget)
+    if (payment_type !== 'REFUND') {
+      const { data: studioForNotif } = await admin
+        .from('studio_profiles')
+        .select('id, phone')
+        .eq('photographer_id', session.photographerId)
+        .single();
+
+      const { data: clientForNotif } = await admin
+        .from('clients')
+        .select('name')
+        .eq('id', booking.client_id)
+        .single();
+
+      const { data: bookingForRef } = await admin
+        .from('bookings')
+        .select('booking_ref')
+        .eq('id', bookingId)
+        .single();
+
+      if (studioForNotif && clientForNotif) {
+        notifyPaymentReceived({
+          studioId: studioForNotif.id,
+          bookingId,
+          bookingRef: bookingForRef?.booking_ref || bookingId.slice(0, 8).toUpperCase(),
+          clientName: clientForNotif.name,
+          amountPaid: amountPaise,
+          balanceAmount: updatedBooking?.balance_amount ?? 0,
+          receiptNumber,
+          photographerMobile: studioForNotif.phone,
+        }).catch(err => console.error('[notify payment received]', err));
+      }
+    }
 
     // Suggest completing if fully paid and delivered
     const suggestComplete =

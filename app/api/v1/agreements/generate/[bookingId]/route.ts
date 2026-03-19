@@ -22,6 +22,7 @@ import {
   formatEventType,
 } from "@/lib/agreements";
 import type { AgreementSnapshot } from "@/types";
+import { notifyAgreementReady } from "@/lib/notifications";
 
 interface Params {
   params: { bookingId: string };
@@ -197,6 +198,17 @@ export async function POST(request: NextRequest, { params }: Params) {
         500
       );
     }
+
+    // NOTIFICATION: Agreement ready (fire-and-forget)
+    notifyAgreementReady({
+      studioId: studio.id,
+      bookingId,
+      bookingRef: snapshot.booking_ref,
+      clientName: snapshot.client_name,
+      clientMobile: snapshot.client_mobile || '',
+      studioName: snapshot.studio_name,
+      agreementId,
+    }).catch(err => console.error('[notify agreement ready]', err));
 
     return successResponse({
       agreement: {

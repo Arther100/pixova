@@ -5,6 +5,7 @@
 
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import { ProfileCompletionBar } from "./ProfileCompletionBar";
@@ -148,6 +149,9 @@ export function DashboardWelcome({ data }: DashboardWelcomeProps) {
         />
       </div>
 
+      {/* Feedback summary */}
+      <FeedbackSummaryCard />
+
       {/* Profile completion bar (show if < 80%) */}
       {profileScore < 80 && (
         <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
@@ -279,4 +283,47 @@ function getGreeting(t: { dashboard: { goodMorning: string; goodAfternoon: strin
   if (hour < 12) return t.dashboard.goodMorning;
   if (hour < 17) return t.dashboard.goodAfternoon;
   return t.dashboard.goodEvening;
+}
+
+// ── Feedback Summary Card (fetched client-side) ──
+function FeedbackSummaryCard() {
+  const [data, setData] = useState<{ average_rating: number; total_reviews: number } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/v1/feedback/summary")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success && json.data?.total_reviews > 0) setData(json.data);
+      })
+      .catch(() => {});
+  }, []);
+
+  if (!data) return null;
+
+  return (
+    <Link href="/reviews" className="block">
+      <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 transition-all hover:shadow-md dark:border-gray-800 dark:bg-gray-900 dark:hover:border-gray-700">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-yellow-50 dark:bg-yellow-900/30">
+            <span className="text-lg">⭐</span>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+              {data.average_rating.toFixed(1)} average rating
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {data.total_reviews} review{data.total_reviews !== 1 ? "s" : ""} from clients
+            </p>
+          </div>
+        </div>
+        <div className="flex">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <span key={star} className={`text-sm ${star <= Math.round(data.average_rating) ? "text-yellow-400" : "text-gray-200 dark:text-gray-700"}`}>
+              ★
+            </span>
+          ))}
+        </div>
+      </div>
+    </Link>
+  );
 }

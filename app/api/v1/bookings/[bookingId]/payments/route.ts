@@ -17,6 +17,7 @@ import {
   serverErrorResponse,
 } from "@/lib/api-helpers";
 import { generateReceiptNumber, derivePaymentStatus } from "@/lib/payments";
+import { notifyPaymentReceived } from "@/lib/notifications";
 
 // ── Validation schema ──
 const recordPaymentSchema = z.object({
@@ -176,9 +177,37 @@ export async function POST(
     // Return the updated booking data too
     const { data: updatedBooking } = await admin
       .from("bookings")
-      .select("total_amount, paid_amount, balance_amount")
+      .select("total_amount, paid_amount, balance_amount, booking_ref")
       .eq("id", bookingId)
       .single();
+
+    // NOTIFICATION: Payment received (fire-and-forget)
+    {
+      const { data: studioForNotif } = await admin
+        .from('studio_profiles')
+        .select('id, phone')
+        .eq('photographer_id', session.photographerId)
+        .single();
+
+      const { data: clientForNotif } = await admin
+        .from('clients')
+        .select('name')
+        .eq('id', booking.client_id)
+        .single();
+
+      if (studioForNotif && clientForNotif) {
+        notifyPaymentReceived({
+          studioId: studioForNotif.id,
+          bookingId,
+          bookingRef: updatedBooking?.booking_ref || bookingId.slice(0, 8).toUpperCase(),
+          clientName: clientForNotif.name,
+          amountPaid: amount,
+          balanceAmount: updatedBooking?.balance_amount ?? 0,
+          receiptNumber,
+          photographerMobile: studioForNotif.phone,
+        }).catch(err => console.error('[notify payment received]', err));
+      }
+    }
 
     return successResponse(
       {

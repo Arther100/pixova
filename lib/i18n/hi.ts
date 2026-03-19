@@ -217,11 +217,14 @@ const hi: TranslationKeys = {
     galleries: "गैलरी",
     clients: "ग्राहक",
     payments: "भुगतान",
+    messages: "संदेश",
+    reviews: "समीक्षाएँ",
     settings: "सेटिंग्स",
     appearance: "दिखावट",
     logout: "लॉगआउट",
     photographer: "फ़ोटोग्राफर",
     manageAccount: "अपना अकाउंट प्रबंधित करें",
+    notifications: "नोटिफिकेशन",
   },
 
   // Bookings

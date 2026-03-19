@@ -18,6 +18,7 @@ import {
 import { createPaymentLink, cancelPaymentLink } from "@/lib/razorpay";
 import { getPaymentTypeLabel } from "@/lib/payments";
 import { formatDate } from "@/utils/date";
+import { notifyPaymentLink } from "@/lib/notifications";
 
 interface Params {
   params: { bookingId: string };
@@ -148,6 +149,29 @@ export async function POST(request: NextRequest, { params }: Params) {
     if (insertErr) {
       console.error("[payment-link] insert error:", insertErr);
       return serverErrorResponse();
+    }
+
+    // NOTIFICATION: Payment link sent (fire-and-forget)
+    {
+      const { data: studioForNotif } = await admin
+        .from('studio_profiles')
+        .select('id, name')
+        .eq('photographer_id', session.photographerId)
+        .single();
+
+      if (studioForNotif) {
+        notifyPaymentLink({
+          studioId: studioForNotif.id,
+          bookingId,
+          bookingRef: booking.booking_ref || bookingId.slice(0, 8),
+          clientName: client.name,
+          clientMobile: client.phone,
+          studioName: studioForNotif.name,
+          amount: amountPaise,
+          paymentUrl: link.short_url,
+          expiresAt,
+        }).catch(err => console.error('[notify payment link]', err));
+      }
     }
 
     return successResponse(

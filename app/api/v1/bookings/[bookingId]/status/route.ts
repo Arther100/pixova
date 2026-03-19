@@ -16,6 +16,7 @@ import {
   serverErrorResponse,
 } from "@/lib/api-helpers";
 import { updateBookingStatusSchema } from "@/lib/validations";
+import { notifyBookingConfirmed } from "@/lib/notifications";
 
 // ── Status machine: allowed transitions ──
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
@@ -151,6 +152,42 @@ export async function POST(request: NextRequest, { params }: Params) {
         console.error("Agreement trigger error:", err);
       }
       // --- END AUTO GENERATE AGREEMENT ---
+
+      // NOTIFICATION: Booking confirmed (fire-and-forget)
+      // Fetch fresh data for notification (to avoid TypeScript inference issues with joins)
+      const { data: studioForNotif } = await supabase
+        .from('studio_profiles')
+        .select('id, phone')
+        .eq('photographer_id', session.photographerId)
+        .single();
+
+      const { data: bookingForNotif } = await supabase
+        .from('bookings')
+        .select('booking_ref, event_type, event_date, total_amount, client_id')
+        .eq('id', bookingId)
+        .single();
+
+      if (studioForNotif && bookingForNotif) {
+        const { data: clientForNotif } = await supabase
+          .from('clients')
+          .select('name, phone')
+          .eq('id', bookingForNotif.client_id)
+          .single();
+
+        if (clientForNotif) {
+          notifyBookingConfirmed({
+            studioId: studioForNotif.id,
+            bookingId,
+            bookingRef: bookingForNotif.booking_ref || bookingId.slice(0, 8).toUpperCase(),
+            eventType: bookingForNotif.event_type || 'Event',
+            eventDate: bookingForNotif.event_date || new Date().toISOString(),
+            clientName: clientForNotif.name,
+            clientMobile: clientForNotif.phone,
+            photographerMobile: studioForNotif.phone,
+            totalAmount: bookingForNotif.total_amount ?? 0,
+          }).catch(err => console.error('[notify booking confirmed]', err));
+        }
+      }
     } else if (newStatus === "cancelled") {
       // Free the date — delete calendar block entirely
       await supabase

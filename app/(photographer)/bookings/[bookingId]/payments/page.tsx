@@ -138,8 +138,22 @@ export default function BookingPaymentsPage() {
     setActiveLink(null);
   };
 
-  const handleWhatsAppPlaceholder = () => {
-    showToast("success", "WhatsApp notifications coming in MOD-07");
+  const handleSendViaWhatsApp = async () => {
+    try {
+      const res = await fetch('/api/v1/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ booking_id: bookingId, type: 'payment_link' }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        showToast('success', 'Payment link sent via WhatsApp');
+      } else {
+        showToast('error', json.error || 'Failed to send');
+      }
+    } catch {
+      showToast('error', 'Network error');
+    }
   };
 
   if (loading) {
@@ -215,7 +229,7 @@ export default function BookingPaymentsPage() {
             <Button
               variant="secondary"
               size="sm"
-              onClick={handleWhatsAppPlaceholder}
+              onClick={handleSendViaWhatsApp}
             >
               Send via WhatsApp
             </Button>

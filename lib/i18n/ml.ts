@@ -217,11 +217,14 @@ const ml: TranslationKeys = {
     galleries: "ഗാലറികൾ",
     clients: "ക്ലയന്റുകൾ",
     payments: "പേയ്‌മെന്റുകൾ",
+    messages: "സന്ദേശങ്ങൾ",
+    reviews: "അവലോകനങ്ങൾ",
     settings: "സെറ്റിംഗ്‌സ്",
     appearance: "രൂപഭാവം",
     logout: "ലോഗ്ഔട്ട്",
     photographer: "ഫോട്ടോഗ്രാഫർ",
     manageAccount: "നിങ്ങളുടെ അക്കൗണ്ട് നിയന്ത്രിക്കുക",
+    notifications: "അറിയിപ്പുകൾ",
   },
 
   // Bookings

@@ -14,6 +14,7 @@ import { PhotoUploadZone, type PhotoUploadZoneRef } from "@/components/PhotoUplo
 import { PhotoGrid } from "@/components/PhotoGrid";
 import { PhotoLightbox } from "@/components/PhotoLightbox";
 import { StorageBar } from "@/components/StorageBar";
+import BulkDownloadButton from "@/components/gallery/BulkDownloadButton";
 
 interface Gallery {
   id: string;
@@ -64,6 +65,11 @@ export default function GalleryManagePage() {
   const [showSettings, setShowSettings] = useState(false);
   const [stagedCount, setStagedCount] = useState(0);
   const uploadRef = useRef<PhotoUploadZoneRef>(null);
+  const [showClientPicks, setShowClientPicks] = useState(false);
+  const [selectionLocked, setSelectionLocked] = useState(false);
+  const [clientPicksCount, setClientPicksCount] = useState(0);
+  const [clientPicks, setClientPicks] = useState<Photo[]>([]);
+  const [lockToggling, setLockToggling] = useState(false);
 
   // Gallery settings form
   const [settingsPin, setSettingsPin] = useState("");
@@ -137,11 +143,58 @@ export default function GalleryManagePage() {
     }
   }, []);
 
+  // Fetch client selection data
+  const fetchClientPicks = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/v1/galleries/${bookingId}/selection`);
+      const json = await res.json();
+      if (json.success) {
+        setSelectionLocked(json.data.selection_locked ?? false);
+        setClientPicksCount(json.data.selected_count ?? 0);
+        setClientPicks(
+          (json.data.selected_photos || []).map((p: { photo_id: string; url: string; filename: string; sort_order: number }) => ({
+            id: p.photo_id,
+            url: p.url,
+            thumbnail_url: null,
+            original_filename: p.filename,
+            sort_order: p.sort_order,
+          }))
+        );
+      }
+    } catch {
+      // non-critical
+    }
+  }, [bookingId]);
+
+  // Toggle lock/unlock selection
+  const handleToggleLock = async () => {
+    setLockToggling(true);
+    try {
+      const res = await fetch(`/api/v1/galleries/${bookingId}/selection`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ selection_locked: !selectionLocked }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSelectionLocked(json.data.selection_locked);
+        showToast("success", json.data.selection_locked ? "Selection locked" : "Selection unlocked");
+      } else {
+        showToast("error", json.error || "Failed to toggle lock");
+      }
+    } catch {
+      showToast("error", "Network error");
+    } finally {
+      setLockToggling(false);
+    }
+  };
+
   useEffect(() => {
     initGallery();
     fetchPhotos();
     fetchStorage();
-  }, [initGallery, fetchPhotos, fetchStorage]);
+    fetchClientPicks();
+  }, [initGallery, fetchPhotos, fetchStorage, fetchClientPicks]);
 
   // Delete photo
   const handleDeletePhoto = async (photoId: string) => {
@@ -439,6 +492,90 @@ export default function GalleryManagePage() {
         </div>
       )}
 
+      {/* Client Picks / Upload toggle */}
+      <div className="mt-6 flex gap-2">
+        <button
+          onClick={() => setShowClientPicks(false)}
+          className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
+            !showClientPicks
+              ? "bg-gray-900 text-white dark:bg-white dark:text-gray-900"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+          }`}
+        >
+          Photos & Upload
+        </button>
+        <button
+          onClick={() => { setShowClientPicks(true); fetchClientPicks(); }}
+          className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
+            showClientPicks
+              ? "bg-yellow-500 text-white"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+          }`}
+        >
+          Client Picks ♥ {clientPicksCount > 0 ? clientPicksCount : ""}
+        </button>
+      </div>
+
+      {showClientPicks ? (
+        /* Client Picks Tab */
+        <div className="mt-6 space-y-4">
+          {/* Lock/Unlock + info */}
+          <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+            <div>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                ♥ {clientPicksCount} photo{clientPicksCount !== 1 ? "s" : ""} selected by client
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {selectionLocked
+                  ? "Selection is locked — client cannot change picks."
+                  : "Selection is open — client can still add/remove picks."}
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              loading={lockToggling}
+              onClick={handleToggleLock}
+            >
+              {selectionLocked ? "🔓 Unlock" : "🔒 Lock"}
+            </Button>
+          </div>
+
+          {/* Download buttons */}
+          <BulkDownloadButton
+            downloadEndpoint={`/api/v1/galleries/${bookingId}/download-urls?selected_only=true`}
+            totalPhotos={clientPicksCount}
+            selectedCount={clientPicksCount}
+            downloadEnabled={true}
+          />
+
+          {/* Client picks grid */}
+          {clientPicks.length === 0 ? (
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-8 text-center dark:border-gray-800 dark:bg-gray-900">
+              <span className="text-3xl">♥</span>
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                No client selections yet.
+              </p>
+              <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                When your client favourites photos, they will appear here.
+              </p>
+            </div>
+          ) : (
+            <PhotoGrid
+              photos={clientPicks}
+              isManageMode={false}
+              onDelete={() => {}}
+              onToggleVisibility={() => {}}
+              onPhotoClick={(photo) => {
+                const idx = clientPicks.findIndex((p) => p.id === photo.id);
+                setLightboxIndex(idx);
+              }}
+            />
+          )}
+        </div>
+      ) : (
+      /* Photos & Upload Tab */
+      <>
       {/* Upload zone */}
       <div className="mt-6">
         <PhotoUploadZone
@@ -467,15 +604,27 @@ export default function GalleryManagePage() {
         />
       </div>
 
+      {/* Download all photos */}
+      <div className="mt-4">
+        <BulkDownloadButton
+          downloadEndpoint={`/api/v1/galleries/${bookingId}/download-urls`}
+          totalPhotos={photos.length}
+          selectedCount={clientPicksCount}
+          downloadEnabled={true}
+        />
+      </div>
+      </>
+      )}
+
       {/* Lightbox */}
-      {lightboxIndex !== null && photos[lightboxIndex] && (
+      {lightboxIndex !== null && (showClientPicks ? clientPicks : photos)[lightboxIndex] && (
         <PhotoLightbox
-          url={photos[lightboxIndex].url}
-          filename={photos[lightboxIndex].original_filename}
+          url={(showClientPicks ? clientPicks : photos)[lightboxIndex].url}
+          filename={(showClientPicks ? clientPicks : photos)[lightboxIndex].original_filename}
           onClose={() => setLightboxIndex(null)}
           onPrev={lightboxIndex > 0 ? () => setLightboxIndex(lightboxIndex - 1) : undefined}
           onNext={
-            lightboxIndex < photos.length - 1
+            lightboxIndex < (showClientPicks ? clientPicks : photos).length - 1
               ? () => setLightboxIndex(lightboxIndex + 1)
               : undefined
           }

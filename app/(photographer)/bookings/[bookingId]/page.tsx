@@ -38,6 +38,8 @@ interface BookingDetail {
   notes: string | null;
   internal_notes: string | null;
   team_members: string[];
+  portal_token: string | null;
+  feedback_requested_at: string | null;
   created_at: string;
   updated_at: string;
   client: {
@@ -89,6 +91,7 @@ export default function BookingDetailPage() {
   const [agreementRef, setAgreementRef] = useState<string | null>(null);
   const [agreementStatus, setAgreementStatus] = useState<string | null>(null);
   const [generatingAgreement, setGeneratingAgreement] = useState(false);
+  const [clientPicksCount, setClientPicksCount] = useState(0);
 
   const fetchBooking = useCallback(async () => {
     // Show cached data instantly, still refresh in background
@@ -114,7 +117,12 @@ export default function BookingDetailPage() {
 
   useEffect(() => {
     fetchBooking();
-  }, [fetchBooking]);
+    // Fetch client picks count
+    fetch(`/api/v1/galleries/${bookingId}/selection`)
+      .then((r) => r.json())
+      .then((json) => { if (json.success) setClientPicksCount(json.data.selected_count ?? 0); })
+      .catch(() => {});
+  }, [fetchBooking, bookingId]);
 
   // Fetch agreement for this booking
   const fetchAgreement = useCallback(async () => {
@@ -422,6 +430,11 @@ export default function BookingDetailPage() {
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {t.galleries.uploadAndShare}
                 </p>
+                {clientPicksCount > 0 && (
+                  <p className="text-xs font-medium text-yellow-600 dark:text-yellow-400">
+                    ♥ Client selected: {clientPicksCount} photo{clientPicksCount !== 1 ? "s" : ""}
+                  </p>
+                )}
               </div>
             </div>
             <Link href={`/galleries/${booking.id}`}>
@@ -526,6 +539,23 @@ export default function BookingDetailPage() {
             </div>
           </div>
 
+          {/* Notifications Quick Section */}
+          <NotificationsSection bookingId={booking.id} agreementExists={!!agreementId} />
+
+          {/* Portal Link Section */}
+          {booking.status !== "cancelled" && booking.portal_token && (
+            <PortalLinkSection
+              bookingId={booking.id}
+              portalToken={booking.portal_token}
+              bookingStatus={booking.status}
+            />
+          )}
+
+          {/* Client Feedback Section */}
+          {["delivered", "completed"].includes(booking.status) && (
+            <FeedbackSection bookingId={booking.id} bookingStatus={booking.status} />
+          )}
+
           {/* Notes */}
           {(booking.notes || booking.internal_notes) && (
             <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
@@ -621,4 +651,351 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+// ─── Notifications Section ──────────────────
+function NotificationsSection({ bookingId, agreementExists }: { bookingId: string; agreementExists: boolean }) {
+  const [notifications, setNotifications] = useState<Array<{
+    notification_id: string;
+    campaign_name: string;
+    recipient_type: string;
+    status: string;
+    created_at: string;
+  }>>([]);
+  const [sending, setSending] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
+  const showSectionToast = (message: string, type: "success" | "error") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  useEffect(() => {
+    fetch(`/api/v1/notifications?booking_id=${bookingId}&limit=5`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success) setNotifications(json.data?.notifications || []);
+      })
+      .catch(() => {});
+  }, [bookingId]);
+
+  async function handleResend(type: string) {
+    setSending(type);
+    try {
+      const res = await fetch("/api/v1/notifications/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ booking_id: bookingId, type }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        showSectionToast(
+          type === "agreement_ready" ? "Agreement link sent via WhatsApp" : "Gallery link sent via WhatsApp",
+          "success"
+        );
+        // Refresh notifications
+        const r2 = await fetch(`/api/v1/notifications?booking_id=${bookingId}&limit=5`);
+        const j2 = await r2.json();
+        if (j2.success) setNotifications(j2.data?.notifications || []);
+      } else {
+        showSectionToast(json.error || "Failed to send", "error");
+      }
+    } catch {
+      showSectionToast("Network error", "error");
+    } finally {
+      setSending(null);
+    }
+  }
+
+  function campaignLabel(name: string): string {
+    const labels: Record<string, string> = {
+      booking_confirmed_client: "Booking confirmed → client",
+      booking_confirmed_photographer: "Booking confirmed → you",
+      payment_received: "Payment received → you",
+      agreement_ready: "Agreement sent → client",
+      gallery_published: "Gallery link → client",
+      payment_link_sent: "Payment link → client",
+      event_reminder_client: "Event reminder → client",
+      event_reminder_photographer: "Event reminder → you",
+    };
+    return labels[name] || name.replace(/_/g, " ");
+  }
+
+  function timeAgo(dateStr: string): string {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
+      {/* Section toast */}
+      {toast && (
+        <div className={`mb-4 rounded-lg px-3 py-2 text-sm ${
+          toast.type === "success"
+            ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+            : "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+        }`}>
+          {toast.message}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+          Recent Notifications
+        </h3>
+        <Link
+          href="/settings/notifications/log"
+          className="text-xs text-brand-600 hover:underline dark:text-brand-400"
+        >
+          View all →
+        </Link>
+      </div>
+
+      {notifications.length === 0 ? (
+        <p className="mt-3 text-xs text-gray-400 dark:text-gray-500">
+          No notifications sent yet for this booking.
+        </p>
+      ) : (
+        <div className="mt-3 space-y-2">
+          {notifications.map((n) => (
+            <div key={n.notification_id} className="flex items-center gap-2 text-xs">
+              <span>{n.status === "SENT" ? "✅" : "❌"}</span>
+              <span className="text-gray-700 dark:text-gray-300">
+                {campaignLabel(n.campaign_name)}
+              </span>
+              <span className="text-gray-400 dark:text-gray-500">
+                {timeAgo(n.created_at)}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Re-send buttons */}
+      <div className="mt-4 flex flex-wrap gap-2">
+        {agreementExists && (
+          <button
+            onClick={() => handleResend("agreement_ready")}
+            disabled={sending === "agreement_ready"}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+          >
+            📄 {sending === "agreement_ready" ? "Sending..." : "Re-send Agreement"}
+          </button>
+        )}
+        <button
+          onClick={() => handleResend("gallery_published")}
+          disabled={sending === "gallery_published"}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+        >
+          🖼️ {sending === "gallery_published" ? "Sending..." : "Re-send Gallery Link"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Portal Link Section ──────────────────
+function PortalLinkSection({ portalToken, bookingStatus }: { bookingId: string; portalToken: string; bookingStatus: string }) {
+  const [copied, setCopied] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  const portalUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/portal/${portalToken}`
+    : `/portal/${portalToken}`;
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(portalUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback
+    }
+  }
+
+  async function handleRequestFeedback() {
+    setSending(true);
+    try {
+      const res = await fetch(`/api/v1/portal/${portalToken}/request-feedback`, { method: "POST" });
+      const json = await res.json();
+      if (json.success) {
+        setToast({ message: "Feedback request sent to client!", type: "success" });
+      } else {
+        setToast({ message: json.error || "Failed to send", type: "error" });
+      }
+    } catch {
+      setToast({ message: "Network error", type: "error" });
+    } finally {
+      setSending(false);
+      setTimeout(() => setToast(null), 3000);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
+      {toast && (
+        <div className={`mb-4 rounded-lg px-3 py-2 text-sm ${
+          toast.type === "success"
+            ? "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+            : "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+        }`}>
+          {toast.message}
+        </div>
+      )}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-purple-50 dark:bg-purple-900/30">
+            <svg className="h-5 w-5 text-purple-600 dark:text-purple-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              Client Portal
+            </h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Share this link with your client
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={handleCopy}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+          >
+            {copied ? "✅ Copied" : "📋 Copy Link"}
+          </button>
+          {["delivered", "completed"].includes(bookingStatus) && (
+            <button
+              onClick={handleRequestFeedback}
+              disabled={sending}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+            >
+              {sending ? "Sending..." : "⭐ Request Feedback"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Client Feedback Section ──────────────────
+function FeedbackSection({ bookingId, bookingStatus }: { bookingId: string; bookingStatus: string }) {
+  const [feedback, setFeedback] = useState<{
+    feedback_id: string;
+    rating: number;
+    review_text: string | null;
+    is_public: boolean;
+    photographer_reply: string | null;
+    submitted_at: string;
+    reply_at: string | null;
+    client_name: string;
+  } | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [replying, setReplying] = useState(false);
+  const [showReplyForm, setShowReplyForm] = useState(false);
+
+  useEffect(() => {
+    if (!["delivered", "completed"].includes(bookingStatus)) return;
+    fetch(`/api/v1/bookings/${bookingId}/feedback`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success && json.data?.feedback) setFeedback(json.data.feedback);
+      })
+      .catch(() => {})
+      .finally(() => setLoaded(true));
+  }, [bookingId, bookingStatus]);
+
+  async function handleReply() {
+    if (!replyText.trim() || replying) return;
+    setReplying(true);
+    try {
+      const res = await fetch(`/api/v1/bookings/${bookingId}/feedback/reply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reply: replyText.trim() }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setFeedback((prev) => prev ? { ...prev, photographer_reply: replyText.trim(), reply_at: new Date().toISOString() } : null);
+        setShowReplyForm(false);
+        setReplyText("");
+      }
+    } catch {
+      // Silently fail
+    } finally {
+      setReplying(false);
+    }
+  }
+
+  if (!loaded || !feedback) return null;
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-700 dark:bg-gray-900">
+      <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
+        Client Feedback
+      </h3>
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{feedback.client_name}</span>
+        <div className="flex">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <span key={star} className={`text-sm ${star <= feedback.rating ? "text-yellow-400" : "text-gray-200 dark:text-gray-700"}`}>
+              ★
+            </span>
+          ))}
+        </div>
+        {feedback.is_public && (
+          <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-600 dark:bg-green-900/30 dark:text-green-400">Public</span>
+        )}
+      </div>
+      {feedback.review_text && (
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">&ldquo;{feedback.review_text}&rdquo;</p>
+      )}
+      <p className="mt-1 text-[10px] text-gray-400">
+        {new Date(feedback.submitted_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+      </p>
+
+      {feedback.photographer_reply ? (
+        <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50 p-3 dark:border-blue-900/50 dark:bg-blue-950/30">
+          <p className="text-xs font-medium text-blue-700 dark:text-blue-300">Your Reply</p>
+          <p className="mt-1 text-sm text-blue-800 dark:text-blue-200">{feedback.photographer_reply}</p>
+        </div>
+      ) : showReplyForm ? (
+        <div className="mt-3 space-y-2">
+          <textarea
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value.slice(0, 500))}
+            rows={3}
+            placeholder="Write your reply..."
+            className="w-full rounded-lg border border-gray-300 p-3 text-sm text-gray-700 placeholder:text-gray-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+          />
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-400">{replyText.length}/500</span>
+            <div className="flex gap-2">
+              <button onClick={() => setShowReplyForm(false)} className="text-xs text-gray-500">Cancel</button>
+              <button
+                onClick={handleReply}
+                disabled={!replyText.trim() || replying}
+                className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+              >
+                {replying ? "Sending..." : "Reply"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setShowReplyForm(true)} className="mt-3 text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400">
+          Reply to feedback
+        </button>
+      )}
+    </div>
+  );
+}

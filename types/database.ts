@@ -496,6 +496,7 @@ export interface Database {
           internal_notes: string | null;
           team_members: string[];
           portal_token: string | null;
+          feedback_requested_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -522,6 +523,7 @@ export interface Database {
           internal_notes?: string | null;
           team_members?: string[];
           portal_token?: string | null;
+          feedback_requested_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -548,6 +550,7 @@ export interface Database {
           internal_notes?: string | null;
           team_members?: string[];
           portal_token?: string | null;
+          feedback_requested_at?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -718,6 +721,7 @@ export interface Database {
           password_hint: string | null;
           client_notified: boolean;
           download_enabled: boolean;
+          selection_locked: boolean;
           updated_at: string;
         };
         Insert: {
@@ -744,6 +748,7 @@ export interface Database {
           password_hint?: string | null;
           client_notified?: boolean;
           download_enabled?: boolean;
+          selection_locked?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -771,6 +776,7 @@ export interface Database {
           password_hint?: string | null;
           client_notified?: boolean;
           download_enabled?: boolean;
+          selection_locked?: boolean;
           updated_at?: string;
         };
         Relationships: [];
@@ -797,6 +803,7 @@ export interface Database {
           caption: string | null;
           exif_data: Json | null;
           client_visible: boolean;
+          client_favourited: boolean;
           deleted_at: string | null;
           created_at: string;
         };
@@ -819,6 +826,7 @@ export interface Database {
           caption?: string | null;
           exif_data?: Json | null;
           client_visible?: boolean;
+          client_favourited?: boolean;
           deleted_at?: string | null;
           created_at?: string;
         };
@@ -841,6 +849,7 @@ export interface Database {
           caption?: string | null;
           exif_data?: Json | null;
           client_visible?: boolean;
+          client_favourited?: boolean;
           deleted_at?: string | null;
         };
         Relationships: [];
@@ -1140,51 +1149,127 @@ export interface Database {
         Relationships: [];
       };
 
-      // ── 18. client_feedback ──
-      client_feedback: {
+      // ── 17b. whatsapp_notifications (MOD-07) ──
+      whatsapp_notifications: {
         Row: {
-          id: string;
-          photographer_id: string;
-          client_id: string;
+          notification_id: string;
+          studio_id: string | null;
           booking_id: string | null;
-          gallery_id: string | null;
-          rating: number;
-          review_text: string | null;
-          is_public: boolean;
-          is_verified: boolean;
-          response_text: string | null;
-          responded_at: string | null;
+          recipient_mobile: string;
+          recipient_type: string;
+          campaign_name: string;
+          template_params: Json | null;
+          status: string;
+          aisensy_message_id: string | null;
+          error_message: string | null;
+          sent_at: string | null;
           created_at: string;
+        };
+        Insert: {
+          notification_id?: string;
+          studio_id?: string | null;
+          booking_id?: string | null;
+          recipient_mobile: string;
+          recipient_type: string;
+          campaign_name: string;
+          template_params?: Json | null;
+          status?: string;
+          aisensy_message_id?: string | null;
+          error_message?: string | null;
+          sent_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          notification_id?: string;
+          studio_id?: string | null;
+          booking_id?: string | null;
+          recipient_mobile?: string;
+          recipient_type?: string;
+          campaign_name?: string;
+          template_params?: Json | null;
+          status?: string;
+          aisensy_message_id?: string | null;
+          error_message?: string | null;
+          sent_at?: string | null;
+        };
+        Relationships: [];
+      };
+
+      // ── 17c. notification_preferences (MOD-07) ──
+      notification_preferences: {
+        Row: {
+          studio_id: string;
+          notify_booking_confirmed: boolean;
+          notify_payment_received: boolean;
+          notify_agreement_ready: boolean;
+          notify_gallery_published: boolean;
+          notify_payment_link: boolean;
+          notify_event_reminder: boolean;
+          reminder_hours_before: number;
           updated_at: string;
         };
         Insert: {
-          id?: string;
-          photographer_id: string;
-          client_id: string;
-          booking_id?: string | null;
-          gallery_id?: string | null;
-          rating: number;
-          review_text?: string | null;
-          is_public?: boolean;
-          is_verified?: boolean;
-          response_text?: string | null;
-          responded_at?: string | null;
-          created_at?: string;
+          studio_id: string;
+          notify_booking_confirmed?: boolean;
+          notify_payment_received?: boolean;
+          notify_agreement_ready?: boolean;
+          notify_gallery_published?: boolean;
+          notify_payment_link?: boolean;
+          notify_event_reminder?: boolean;
+          reminder_hours_before?: number;
           updated_at?: string;
         };
         Update: {
-          id?: string;
-          photographer_id?: string;
+          studio_id?: string;
+          notify_booking_confirmed?: boolean;
+          notify_payment_received?: boolean;
+          notify_agreement_ready?: boolean;
+          notify_gallery_published?: boolean;
+          notify_payment_link?: boolean;
+          notify_event_reminder?: boolean;
+          reminder_hours_before?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      // ── 18. client_feedback ──
+      client_feedback: {
+        Row: {
+          feedback_id: string;
+          booking_id: string;
+          client_id: string;
+          studio_id: string;
+          rating: number;
+          review_text: string | null;
+          is_public: boolean;
+          photographer_reply: string | null;
+          submitted_at: string;
+          reply_at: string | null;
+        };
+        Insert: {
+          feedback_id?: string;
+          booking_id: string;
+          client_id: string;
+          studio_id: string;
+          rating: number;
+          review_text?: string | null;
+          is_public?: boolean;
+          photographer_reply?: string | null;
+          submitted_at?: string;
+          reply_at?: string | null;
+        };
+        Update: {
+          feedback_id?: string;
+          booking_id?: string;
           client_id?: string;
-          booking_id?: string | null;
-          gallery_id?: string | null;
+          studio_id?: string;
           rating?: number;
           review_text?: string | null;
           is_public?: boolean;
-          is_verified?: boolean;
-          response_text?: string | null;
-          responded_at?: string | null;
-          updated_at?: string;
+          photographer_reply?: string | null;
+          submitted_at?: string;
+          reply_at?: string | null;
         };
         Relationships: [];
       };
@@ -1406,6 +1491,67 @@ export interface Database {
         Relationships: [];
       };
 
+      // ── 23. client_messages ──
+      client_messages: {
+        Row: {
+          message_id: string;
+          booking_id: string;
+          client_id: string;
+          studio_id: string;
+          message_text: string;
+          is_read: boolean;
+          created_at: string;
+        };
+        Insert: {
+          message_id?: string;
+          booking_id: string;
+          client_id: string;
+          studio_id: string;
+          message_text: string;
+          is_read?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          message_id?: string;
+          booking_id?: string;
+          client_id?: string;
+          studio_id?: string;
+          message_text?: string;
+          is_read?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      // ── 24. portal_access_logs ──
+      portal_access_logs: {
+        Row: {
+          log_id: string;
+          booking_id: string;
+          portal_token: string;
+          ip_address: string | null;
+          user_agent: string | null;
+          accessed_at: string;
+        };
+        Insert: {
+          log_id?: string;
+          booking_id: string;
+          portal_token: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          accessed_at?: string;
+        };
+        Update: {
+          log_id?: string;
+          booking_id?: string;
+          portal_token?: string;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          accessed_at?: string;
+        };
+        Relationships: [];
+      };
+
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -1448,10 +1594,14 @@ export type GalleryAccessLog = Database["public"]["Tables"]["gallery_access_logs
 export type PaymentRecord = Database["public"]["Tables"]["payment_records"]["Row"];
 export type Invoice = Database["public"]["Tables"]["invoices"]["Row"];
 export type NotificationLog = Database["public"]["Tables"]["notification_logs"]["Row"];
+export type WhatsAppNotification = Database["public"]["Tables"]["whatsapp_notifications"]["Row"];
+export type NotificationPreference = Database["public"]["Tables"]["notification_preferences"]["Row"];
 export type ClientFeedback = Database["public"]["Tables"]["client_feedback"]["Row"];
 export type Enquiry = Database["public"]["Tables"]["enquiries"]["Row"];
 export type PortfolioShowcase = Database["public"]["Tables"]["portfolio_showcases"]["Row"];
 export type ClientAccount = Database["public"]["Tables"]["client_accounts"]["Row"];
+export type ClientMessage = Database["public"]["Tables"]["client_messages"]["Row"];
+export type PortalAccessLog = Database["public"]["Tables"]["portal_access_logs"]["Row"];
 export type SearchIndexEntry = Database["public"]["Tables"]["search_index"]["Row"];
 
 // ============================================
@@ -1475,6 +1625,8 @@ export type GalleryAccessLogInsert = Database["public"]["Tables"]["gallery_acces
 export type PaymentRecordInsert = Database["public"]["Tables"]["payment_records"]["Insert"];
 export type InvoiceInsert = Database["public"]["Tables"]["invoices"]["Insert"];
 export type NotificationLogInsert = Database["public"]["Tables"]["notification_logs"]["Insert"];
+export type WhatsAppNotificationInsert = Database["public"]["Tables"]["whatsapp_notifications"]["Insert"];
+export type NotificationPreferenceInsert = Database["public"]["Tables"]["notification_preferences"]["Insert"];
 export type ClientFeedbackInsert = Database["public"]["Tables"]["client_feedback"]["Insert"];
 export type EnquiryInsert = Database["public"]["Tables"]["enquiries"]["Insert"];
 export type PortfolioShowcaseInsert = Database["public"]["Tables"]["portfolio_showcases"]["Insert"];

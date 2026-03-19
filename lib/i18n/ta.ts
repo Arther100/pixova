@@ -188,11 +188,14 @@ const ta: TranslationKeys = {
     galleries: "கேலரிகள்",
     clients: "வாடிக்கையாளர்கள்",
     payments: "பணம்",
+    messages: "செய்திகள்",
+    reviews: "மதிப்பீடுகள்",
     settings: "அமைப்புகள்",
     appearance: "தோற்றம்",
     logout: "வெளியேறு",
     photographer: "புகைப்படக் கலைஞர்",
     manageAccount: "உங்கள் கணக்கை நிர்வகிக்கவும்",
+    notifications: "அறிவிப்புகள்",
   },
 
   // Bookings

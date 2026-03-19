@@ -15,6 +15,7 @@ import {
   notFoundResponse,
   serverErrorResponse,
 } from "@/lib/api-helpers";
+import { notifyGalleryPublished } from "@/lib/notifications";
 
 interface Params {
   params: { bookingId: string };
@@ -99,6 +100,9 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       }
     }
 
+    // Track old status for notification logic
+    const oldStatus = existing.status;
+
     if (Object.keys(allowed).length === 0) {
       return errorResponse("No valid fields to update");
     }
@@ -115,6 +119,50 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     if (error) {
       console.error("[PATCH /galleries] Error:", error.message);
       return serverErrorResponse();
+    }
+
+    // NOTIFICATION: Gallery published (fire-and-forget)
+    const updatedGallery = updated as Record<string, unknown> | null;
+    if (updatedGallery?.status === 'published' && oldStatus !== 'published') {
+      // Fetch booking + client for notification
+      const { data: bookingForNotif } = await supabase
+        .from('bookings')
+        .select('id, booking_ref, client_id')
+        .eq('id', bookingId)
+        .eq('photographer_id', session.photographerId)
+        .single();
+
+      if (bookingForNotif) {
+        const { data: clientForNotif } = await supabase
+          .from('clients')
+          .select('name, phone')
+          .eq('id', bookingForNotif.client_id)
+          .single();
+
+        const { data: studioForNotif } = await supabase
+          .from('studio_profiles')
+          .select('id, name')
+          .eq('photographer_id', session.photographerId)
+          .single();
+
+        if (clientForNotif && studioForNotif && updatedGallery?.slug) {
+          const { count } = await supabase
+            .from('gallery_photos')
+            .select('*', { count: 'exact', head: true })
+            .eq('gallery_id', updatedGallery.id as string);
+
+          notifyGalleryPublished({
+            studioId: studioForNotif.id,
+            bookingId: bookingForNotif.id,
+            bookingRef: bookingForNotif.booking_ref || bookingForNotif.id.slice(0, 8).toUpperCase(),
+            clientName: clientForNotif.name,
+            clientMobile: clientForNotif.phone,
+            studioName: studioForNotif.name,
+            gallerySlug: updatedGallery.slug as string,
+            photoCount: count ?? 0,
+          }).catch(err => console.error('[notify gallery published]', err));
+        }
+      }
     }
 
     return successResponse({ gallery: updated });

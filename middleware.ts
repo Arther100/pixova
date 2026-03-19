@@ -9,6 +9,8 @@ const protectedPaths = [
   "/galleries",
   "/clients",
   "/payments",
+  "/messages",
+  "/reviews",
   "/settings",
   "/onboarding",
 ];
@@ -20,6 +22,8 @@ const onboardedOnlyPaths = [
   "/galleries",
   "/clients",
   "/payments",
+  "/messages",
+  "/reviews",
   "/settings",
 ];
 
@@ -33,6 +37,26 @@ export async function middleware(request: NextRequest) {
     pathname.includes(".")
   ) {
     return NextResponse.next();
+  }
+
+  // ── Client portal routes — separate auth flow ──
+  // Portal uses pixova_client_session cookie (set by portal entry API)
+  if (pathname.startsWith("/portal/")) {
+    const clientToken = request.cookies.get("pixova_client_session")?.value;
+    if (!clientToken) {
+      // No session — allow through (entry page handles auth via API)
+      return NextResponse.next();
+    }
+    try {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
+      await jwtVerify(clientToken, secret);
+      return NextResponse.next();
+    } catch {
+      // Expired/invalid client session — clear cookie, allow through for re-auth
+      const response = NextResponse.next();
+      response.cookies.delete("pixova_client_session");
+      return response;
+    }
   }
 
   // ── Verify JWT session ──
