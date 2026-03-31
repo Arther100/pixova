@@ -5,6 +5,9 @@ import { verifyWebhookSignature } from "@/lib/razorpay";
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { generateReceiptNumber, derivePaymentStatus } from "@/lib/payments";
 import { notifyPaymentReceived } from "@/lib/notifications";
+import { logSubscriptionEvent } from "@/lib/adminAuth";
+import { sendAndLog } from "@/lib/notifications";
+import { formatMobileForWhatsApp } from "@/lib/aisensy";
 
 export async function POST(request: NextRequest) {
   try {
@@ -169,10 +172,299 @@ export async function POST(request: NextRequest) {
         break;
       }
 
-      case "subscription.activated":
-      case "subscription.charged":
+      case "subscription.activated": {
+        const sub = event.payload.subscription?.entity;
+        if (!sub) break;
+
+        const razorpaySubId = sub.id;
+
+        // Find our razorpay_subscriptions record
+        const { data: rzpSub } = await supabase
+          .from("razorpay_subscriptions")
+          .select("id, photographer_id, studio_id, plan_id")
+          .eq("razorpay_sub_id", razorpaySubId)
+          .maybeSingle();
+
+        if (!rzpSub) {
+          console.log("[webhook] Unknown subscription:", razorpaySubId);
+          break;
+        }
+
+        const now = new Date();
+        const nextMonth = new Date(now);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+        // Update razorpay_subscriptions
+        await supabase
+          .from("razorpay_subscriptions")
+          .update({
+            status: "active",
+            current_start: now.toISOString(),
+            current_end: nextMonth.toISOString(),
+            updated_at: now.toISOString(),
+          })
+          .eq("razorpay_sub_id", razorpaySubId);
+
+        // Get plan details
+        const { data: plan } = await supabase
+          .from("plans")
+          .select("name, price_monthly")
+          .eq("id", rzpSub.plan_id)
+          .single();
+
+        // Update main subscription
+        const { data: currentSub } = await supabase
+          .from("subscriptions")
+          .select("status")
+          .eq("photographer_id", rzpSub.photographer_id)
+          .single();
+
+        await supabase
+          .from("subscriptions")
+          .update({
+            plan_id: rzpSub.plan_id,
+            status: "ACTIVE",
+            current_period_start: now.toISOString(),
+            current_period_end: nextMonth.toISOString(),
+            grace_period_ends_at: null,
+            bookings_this_cycle: 0,
+            razorpay_subscription_id: razorpaySubId,
+            updated_at: now.toISOString(),
+          })
+          .eq("photographer_id", rzpSub.photographer_id);
+
+        await logSubscriptionEvent({
+          photographerId: rzpSub.photographer_id,
+          studioId: rzpSub.studio_id,
+          eventType: "SUBSCRIPTION_ACTIVATED",
+          newPlan: plan?.name,
+          oldStatus: currentSub?.status as string | undefined,
+          newStatus: "ACTIVE",
+          amountPaise: plan?.price_monthly,
+          razorpaySubId,
+        });
+
+        // Notify photographer
+        const { data: studio } = await supabase
+          .from("studio_profiles")
+          .select("id, phone, name")
+          .eq("id", rzpSub.studio_id)
+          .single();
+
+        if (studio?.phone) {
+          sendAndLog({
+            studioId: studio.id,
+            recipientMobile: formatMobileForWhatsApp(studio.phone),
+            recipientType: "PHOTOGRAPHER",
+            campaignName: "subscription_activated",
+            userName: studio.name,
+            templateParams: [studio.name, plan?.name ?? ""],
+          }).catch(console.error);
+        }
+
+        break;
+      }
+
+      case "subscription.charged": {
+        const sub = event.payload.subscription?.entity;
+        if (!sub) break;
+
+        const razorpaySubId = sub.id;
+
+        const { data: rzpSub } = await supabase
+          .from("razorpay_subscriptions")
+          .select("id, photographer_id, studio_id, plan_id, amount_paise")
+          .eq("razorpay_sub_id", razorpaySubId)
+          .maybeSingle();
+
+        if (!rzpSub) break;
+
+        const now = new Date();
+        const nextMonth = new Date(now);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+        await supabase
+          .from("razorpay_subscriptions")
+          .update({
+            paid_count: sub.paid_count ?? 0,
+            current_start: now.toISOString(),
+            current_end: nextMonth.toISOString(),
+            updated_at: now.toISOString(),
+          })
+          .eq("razorpay_sub_id", razorpaySubId);
+
+        await supabase
+          .from("subscriptions")
+          .update({
+            status: "ACTIVE",
+            current_period_start: now.toISOString(),
+            current_period_end: nextMonth.toISOString(),
+            grace_period_ends_at: null,
+            bookings_this_cycle: 0,
+            updated_at: now.toISOString(),
+          })
+          .eq("photographer_id", rzpSub.photographer_id);
+
+        const { data: plan } = await supabase
+          .from("plans")
+          .select("name")
+          .eq("id", rzpSub.plan_id)
+          .single();
+
+        await logSubscriptionEvent({
+          photographerId: rzpSub.photographer_id,
+          studioId: rzpSub.studio_id,
+          eventType: "SUBSCRIPTION_RENEWED",
+          newStatus: "ACTIVE",
+          amountPaise: rzpSub.amount_paise,
+          razorpaySubId,
+          newPlan: plan?.name,
+        });
+
+        const { data: studio } = await supabase
+          .from("studio_profiles")
+          .select("id, phone, name")
+          .eq("id", rzpSub.studio_id)
+          .single();
+
+        if (studio?.phone) {
+          sendAndLog({
+            studioId: studio.id,
+            recipientMobile: formatMobileForWhatsApp(studio.phone),
+            recipientType: "PHOTOGRAPHER",
+            campaignName: "subscription_renewed",
+            userName: studio.name,
+            templateParams: [studio.name, plan?.name ?? ""],
+          }).catch(console.error);
+        }
+
+        break;
+      }
+
       case "subscription.cancelled": {
-        console.log(`[webhook] ${event.event}`, event.payload);
+        const sub = event.payload.subscription?.entity;
+        if (!sub) break;
+
+        const razorpaySubId = sub.id;
+        const { data: rzpSub } = await supabase
+          .from("razorpay_subscriptions")
+          .select("photographer_id, studio_id")
+          .eq("razorpay_sub_id", razorpaySubId)
+          .maybeSingle();
+
+        if (!rzpSub) break;
+
+        await supabase
+          .from("razorpay_subscriptions")
+          .update({ status: "cancelled", updated_at: new Date().toISOString() })
+          .eq("razorpay_sub_id", razorpaySubId);
+
+        await supabase
+          .from("subscriptions")
+          .update({ status: "CANCELLED", cancelled_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+          .eq("photographer_id", rzpSub.photographer_id);
+
+        await logSubscriptionEvent({
+          photographerId: rzpSub.photographer_id,
+          studioId: rzpSub.studio_id,
+          eventType: "SUBSCRIPTION_CANCELLED",
+          newStatus: "CANCELLED",
+          razorpaySubId,
+        });
+
+        break;
+      }
+
+      case "subscription.halted": {
+        const sub = event.payload.subscription?.entity;
+        if (!sub) break;
+
+        const razorpaySubId = sub.id;
+        const { data: rzpSub } = await supabase
+          .from("razorpay_subscriptions")
+          .select("photographer_id, studio_id")
+          .eq("razorpay_sub_id", razorpaySubId)
+          .maybeSingle();
+
+        if (!rzpSub) break;
+
+        const graceEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+        await supabase
+          .from("razorpay_subscriptions")
+          .update({ status: "halted", updated_at: new Date().toISOString() })
+          .eq("razorpay_sub_id", razorpaySubId);
+
+        await supabase
+          .from("subscriptions")
+          .update({
+            status: "GRACE",
+            grace_period_ends_at: graceEnd.toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("photographer_id", rzpSub.photographer_id);
+
+        await logSubscriptionEvent({
+          photographerId: rzpSub.photographer_id,
+          studioId: rzpSub.studio_id,
+          eventType: "GRACE_PERIOD_STARTED",
+          oldStatus: "ACTIVE",
+          newStatus: "GRACE",
+          razorpaySubId,
+          notes: "Payment failed — 7-day grace period started",
+        });
+
+        const { data: studio } = await supabase
+          .from("studio_profiles")
+          .select("id, phone, name")
+          .eq("id", rzpSub.studio_id)
+          .single();
+
+        if (studio?.phone) {
+          sendAndLog({
+            studioId: studio.id,
+            recipientMobile: formatMobileForWhatsApp(studio.phone),
+            recipientType: "PHOTOGRAPHER",
+            campaignName: "payment_failed_grace",
+            userName: studio.name,
+            templateParams: [studio.name, "7"],
+          }).catch(console.error);
+        }
+
+        break;
+      }
+
+      case "subscription.completed": {
+        const sub = event.payload.subscription?.entity;
+        if (!sub) break;
+
+        const razorpaySubId = sub.id;
+        const { data: rzpSub } = await supabase
+          .from("razorpay_subscriptions")
+          .select("photographer_id, studio_id")
+          .eq("razorpay_sub_id", razorpaySubId)
+          .maybeSingle();
+
+        if (!rzpSub) break;
+
+        await supabase
+          .from("razorpay_subscriptions")
+          .update({ status: "completed", updated_at: new Date().toISOString() })
+          .eq("razorpay_sub_id", razorpaySubId);
+
+        await supabase
+          .from("subscriptions")
+          .update({ status: "EXPIRED", updated_at: new Date().toISOString() })
+          .eq("photographer_id", rzpSub.photographer_id);
+
+        await logSubscriptionEvent({
+          photographerId: rzpSub.photographer_id,
+          studioId: rzpSub.studio_id,
+          eventType: "SUBSCRIPTION_CANCELLED",
+          newStatus: "EXPIRED",
+          razorpaySubId,
+        });
+
         break;
       }
 

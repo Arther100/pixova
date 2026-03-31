@@ -26,6 +26,9 @@ export interface Database {
           avatar_url: string | null;
           is_onboarded: boolean;
           is_active: boolean;
+          is_suspended: boolean;
+          suspended_at: string | null;
+          suspended_reason: string | null;
           last_login_at: string | null;
           created_at: string;
           updated_at: string;
@@ -39,6 +42,9 @@ export interface Database {
           avatar_url?: string | null;
           is_onboarded?: boolean;
           is_active?: boolean;
+          is_suspended?: boolean;
+          suspended_at?: string | null;
+          suspended_reason?: string | null;
           last_login_at?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -52,6 +58,9 @@ export interface Database {
           avatar_url?: string | null;
           is_onboarded?: boolean;
           is_active?: boolean;
+          is_suspended?: boolean;
+          suspended_at?: string | null;
+          suspended_reason?: string | null;
           last_login_at?: string | null;
           updated_at?: string;
         };
@@ -376,6 +385,7 @@ export interface Database {
           cancelled_at: string | null;
           cancel_reason: string | null;
           bookings_this_cycle: number;
+          grace_period_ends_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -393,6 +403,7 @@ export interface Database {
           cancelled_at?: string | null;
           cancel_reason?: string | null;
           bookings_this_cycle?: number;
+          grace_period_ends_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -410,6 +421,7 @@ export interface Database {
           cancelled_at?: string | null;
           cancel_reason?: string | null;
           bookings_this_cycle?: number;
+          grace_period_ends_at?: string | null;
           updated_at?: string;
         };
         Relationships: [];
@@ -1552,6 +1564,144 @@ export interface Database {
         Relationships: [];
       };
 
+      // ── 25. admin_users ── (MOD-09)
+      admin_users: {
+        Row: {
+          admin_id: string;
+          email: string;
+          password_hash: string;
+          name: string;
+          is_active: boolean;
+          last_login_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          admin_id?: string;
+          email: string;
+          password_hash: string;
+          name: string;
+          is_active?: boolean;
+          last_login_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          admin_id?: string;
+          email?: string;
+          password_hash?: string;
+          name?: string;
+          is_active?: boolean;
+          last_login_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      // ── 26. subscription_events ── (MOD-09)
+      subscription_events: {
+        Row: {
+          event_id: string;
+          photographer_id: string;
+          studio_id: string | null;
+          event_type: string;
+          old_plan: string | null;
+          new_plan: string | null;
+          old_status: string | null;
+          new_status: string | null;
+          amount_paise: number | null;
+          razorpay_sub_id: string | null;
+          notes: string | null;
+          performed_by: string;
+          created_at: string;
+        };
+        Insert: {
+          event_id?: string;
+          photographer_id: string;
+          studio_id?: string | null;
+          event_type: string;
+          old_plan?: string | null;
+          new_plan?: string | null;
+          old_status?: string | null;
+          new_status?: string | null;
+          amount_paise?: number | null;
+          razorpay_sub_id?: string | null;
+          notes?: string | null;
+          performed_by?: string;
+          created_at?: string;
+        };
+        Update: {
+          event_id?: string;
+          photographer_id?: string;
+          studio_id?: string | null;
+          event_type?: string;
+          old_plan?: string | null;
+          new_plan?: string | null;
+          old_status?: string | null;
+          new_status?: string | null;
+          amount_paise?: number | null;
+          razorpay_sub_id?: string | null;
+          notes?: string | null;
+          performed_by?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      // ── 27. razorpay_subscriptions ── (MOD-09)
+      razorpay_subscriptions: {
+        Row: {
+          id: string;
+          photographer_id: string;
+          studio_id: string;
+          plan_id: string;
+          razorpay_sub_id: string;
+          razorpay_plan_id: string;
+          status: string;
+          current_start: string | null;
+          current_end: string | null;
+          charge_at: string | null;
+          total_count: number | null;
+          paid_count: number;
+          amount_paise: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          photographer_id: string;
+          studio_id: string;
+          plan_id: string;
+          razorpay_sub_id: string;
+          razorpay_plan_id: string;
+          status: string;
+          current_start?: string | null;
+          current_end?: string | null;
+          charge_at?: string | null;
+          total_count?: number | null;
+          paid_count?: number;
+          amount_paise: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          photographer_id?: string;
+          studio_id?: string;
+          plan_id?: string;
+          razorpay_sub_id?: string;
+          razorpay_plan_id?: string;
+          status?: string;
+          current_start?: string | null;
+          current_end?: string | null;
+          charge_at?: string | null;
+          total_count?: number | null;
+          paid_count?: number;
+          amount_paise?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -1652,3 +1802,10 @@ export type EnquiryUpdate = Database["public"]["Tables"]["enquiries"]["Update"];
 export type PortfolioShowcaseUpdate = Database["public"]["Tables"]["portfolio_showcases"]["Update"];
 export type ClientAccountUpdate = Database["public"]["Tables"]["client_accounts"]["Update"];
 export type SubscriptionUpdate = Database["public"]["Tables"]["subscriptions"]["Update"];
+
+// MOD-09 types
+export type AdminUser = Database["public"]["Tables"]["admin_users"]["Row"];
+export type SubscriptionEvent = Database["public"]["Tables"]["subscription_events"]["Row"];
+export type RazorpaySubscription = Database["public"]["Tables"]["razorpay_subscriptions"]["Row"];
+export type SubscriptionEventInsert = Database["public"]["Tables"]["subscription_events"]["Insert"];
+export type RazorpaySubscriptionInsert = Database["public"]["Tables"]["razorpay_subscriptions"]["Insert"];

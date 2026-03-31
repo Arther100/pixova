@@ -9,6 +9,9 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseAdmin } from '@/lib/supabase';
 import { notifyEventReminder } from '@/lib/notifications';
+import { logSubscriptionEvent } from '@/lib/adminAuth';
+import { sendAndLog } from '@/lib/notifications';
+import { formatMobileForWhatsApp } from '@/lib/aisensy';
 
 export async function GET(request: NextRequest) {
   try {
@@ -125,9 +128,114 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Process subscription expiry on each cron run
+    await processSubscriptionExpiry(supabase);
+
     return NextResponse.json({ success: true, ...results });
   } catch (err) {
     console.error('[cron/reminders] Unexpected error:', err);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
+}
+
+// ─── Separate cron endpoint for subscription expiry ───
+export async function PUT(request: NextRequest) {
+  const cronSecret = request.headers.get('x-cron-secret');
+  if (!cronSecret || cronSecret !== process.env.CRON_SECRET) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const supabase = createSupabaseAdmin();
+
+  // Also process subscription expiry every time the event reminder cron runs
+  const subResults = await processSubscriptionExpiry(supabase);
+  return NextResponse.json({ success: true, ...subResults });
+}
+
+// ─── Helper: process trial/grace expiry ───────
+async function processSubscriptionExpiry(supabase: ReturnType<typeof createSupabaseAdmin>) {
+  const now = new Date().toISOString();
+
+  // Expired trials → start grace period
+  const { data: expiredTrials } = await supabase
+    .from('subscriptions')
+    .select('id, photographer_id')
+    .eq('status', 'TRIAL')
+    .lt('current_period_end', now);
+
+  for (const sub of expiredTrials ?? []) {
+    const graceEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    await supabase
+      .from('subscriptions')
+      .update({ status: 'GRACE', grace_period_ends_at: graceEnd, updated_at: now })
+      .eq('id', sub.id);
+
+    await logSubscriptionEvent({
+      photographerId: sub.photographer_id,
+      eventType: 'TRIAL_EXPIRED',
+      oldStatus: 'TRIAL',
+      newStatus: 'GRACE',
+    });
+
+    // WhatsApp notification
+    const { data: studio } = await supabase
+      .from('studio_profiles')
+      .select('id, phone, name')
+      .eq('photographer_id', sub.photographer_id)
+      .single();
+
+    if (studio?.phone) {
+      sendAndLog({
+        studioId: studio.id,
+        recipientMobile: formatMobileForWhatsApp(studio.phone),
+        recipientType: 'PHOTOGRAPHER',
+        campaignName: 'trial_expired_grace',
+        userName: studio.name,
+        templateParams: [studio.name, '7', `${process.env.NEXT_PUBLIC_APP_URL}/settings/subscription`],
+      }).catch(console.error);
+    }
+  }
+
+  // Expired grace periods → hard block
+  const { data: expiredGrace } = await supabase
+    .from('subscriptions')
+    .select('id, photographer_id')
+    .eq('status', 'GRACE')
+    .lt('grace_period_ends_at', now);
+
+  for (const sub of expiredGrace ?? []) {
+    await supabase
+      .from('subscriptions')
+      .update({ status: 'EXPIRED', updated_at: now })
+      .eq('id', sub.id);
+
+    await logSubscriptionEvent({
+      photographerId: sub.photographer_id,
+      eventType: 'GRACE_PERIOD_EXPIRED',
+      oldStatus: 'GRACE',
+      newStatus: 'EXPIRED',
+    });
+
+    const { data: studio } = await supabase
+      .from('studio_profiles')
+      .select('id, phone, name')
+      .eq('photographer_id', sub.photographer_id)
+      .single();
+
+    if (studio?.phone) {
+      sendAndLog({
+        studioId: studio.id,
+        recipientMobile: formatMobileForWhatsApp(studio.phone),
+        recipientType: 'PHOTOGRAPHER',
+        campaignName: 'access_expired',
+        userName: studio.name,
+        templateParams: [studio.name, `${process.env.NEXT_PUBLIC_APP_URL}/settings/subscription`],
+      }).catch(console.error);
+    }
+  }
+
+  return {
+    trials_expired: expiredTrials?.length ?? 0,
+    grace_expired: expiredGrace?.length ?? 0,
+  };
 }

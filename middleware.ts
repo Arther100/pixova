@@ -27,6 +27,16 @@ const onboardedOnlyPaths = [
   "/settings",
 ];
 
+// Subscription bypass routes (allowed even when expired/suspended)
+const subscriptionBypassPaths = [
+  "/settings/subscription",
+  "/suspended",
+  "/onboarding",
+];
+
+// Admin-only paths
+const adminPaths = ["/admin"];
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -36,6 +46,27 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/api/") ||
     pathname.includes(".")
   ) {
+    return NextResponse.next();
+  }
+
+  // ── Admin routes ──
+  if (adminPaths.some((p) => pathname.startsWith(p))) {
+    // Allow admin login page without auth
+    if (pathname === "/admin/login") return NextResponse.next();
+
+    const adminToken = request.cookies.get("pixova_admin_session")?.value;
+    if (!adminToken) {
+      return NextResponse.redirect(new URL("/admin/login", request.url));
+    }
+    try {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
+      const { payload } = await jwtVerify(adminToken, secret);
+      if (payload.role !== "admin") throw new Error("Not admin");
+    } catch {
+      const response = NextResponse.redirect(new URL("/admin/login", request.url));
+      response.cookies.delete("pixova_admin_session");
+      return response;
+    }
     return NextResponse.next();
   }
 
@@ -135,6 +166,49 @@ export async function middleware(request: NextRequest) {
     // Redirect logged-in users away from /login and / (root)
     if (pathname === "/login" || pathname === "/") {
       return trySetCookie(NextResponse.redirect(makeRedirectUrl("/dashboard")));
+    }
+
+    // ── Subscription status check ──
+    const isSubscriptionBypass = subscriptionBypassPaths.some((p) => pathname.startsWith(p));
+    const needsSubscriptionCheck = !isSubscriptionBypass &&
+      onboardedOnlyPaths.some((p) => pathname.startsWith(p));
+
+    if (needsSubscriptionCheck) {
+      const { createSupabaseAdmin } = await import("@/lib/supabase");
+      const supabase = createSupabaseAdmin();
+
+      const { data: photographer } = await supabase
+        .from("photographers")
+        .select("is_suspended")
+        .eq("id", photographerId)
+        .single();
+
+      if (photographer?.is_suspended) {
+        return trySetCookie(NextResponse.redirect(makeRedirectUrl("/suspended")));
+      }
+
+      const { data: sub } = await supabase
+        .from("subscriptions")
+        .select("status, current_period_end, grace_period_ends_at")
+        .eq("photographer_id", photographerId)
+        .single();
+
+      if (sub) {
+        const now = new Date();
+        const status = (sub.status as string).toUpperCase();
+        const periodEnd = new Date(sub.current_period_end);
+        const graceEnd = sub.grace_period_ends_at ? new Date(sub.grace_period_ends_at) : null;
+
+        const isAllowed =
+          status === "ACTIVE" ||
+          status === "CANCELLED" || // still access until period end
+          (status === "TRIAL" || status === "TRIALING") && now < periodEnd ||
+          (status === "GRACE" && graceEnd && now < graceEnd);
+
+        if (!isAllowed) {
+          return trySetCookie(NextResponse.redirect(makeRedirectUrl("/settings/subscription")));
+        }
+      }
     }
 
     // Check if route requires completed onboarding

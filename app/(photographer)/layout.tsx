@@ -8,6 +8,7 @@ import { useTheme } from "@/lib/theme";
 import { useI18n, LOCALE_NAMES, type Locale } from "@/lib/i18n";
 import { BRAND_COLORS, BRAND_COLOR_KEYS } from "@/lib/colors";
 import NavigationProgress from "@/components/NavigationProgress";
+import GracePeriodBanner from "@/components/GracePeriodBanner";
 
 /* ── SVG icon components for pixel-perfect alignment ── */
 function IconDashboard({ className }: { className?: string }) {
@@ -195,6 +196,9 @@ export default function PhotographerLayout({
       <Suspense fallback={null}>
         <NavigationProgress />
       </Suspense>
+
+      {/* ── Grace / Trial banner ── */}
+      <GracePeriodBanner />
 
       {/* ── Mobile overlay ── */}
       {mobileOpen && (
