@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
         bookingId: session.bookingId,
         recipientMobile: studioRes.data.phone,
         recipientType: 'PHOTOGRAPHER',
-        campaignName: process.env.AISENSY_CAMPAIGN_CLIENT_MESSAGE || 'client_message',
+        campaignName: 'pixova_event_reminder',
         userName: clientRes.data?.name || 'Client',
         templateParams: [
           clientRes.data?.name || 'Client',

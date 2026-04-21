@@ -7,7 +7,7 @@ import { generateReceiptNumber, derivePaymentStatus } from "@/lib/payments";
 import { notifyPaymentReceived } from "@/lib/notifications";
 import { logSubscriptionEvent } from "@/lib/adminAuth";
 import { sendAndLog } from "@/lib/notifications";
-import { formatMobileForWhatsApp } from "@/lib/aisensy";
+import { formatMobile } from "@/lib/whatsapp";
 
 export async function POST(request: NextRequest) {
   try {
@@ -254,7 +254,7 @@ export async function POST(request: NextRequest) {
         if (studio?.phone) {
           sendAndLog({
             studioId: studio.id,
-            recipientMobile: formatMobileForWhatsApp(studio.phone),
+            recipientMobile: formatMobile(studio.phone),
             recipientType: "PHOTOGRAPHER",
             campaignName: "subscription_activated",
             userName: studio.name,
@@ -330,7 +330,7 @@ export async function POST(request: NextRequest) {
         if (studio?.phone) {
           sendAndLog({
             studioId: studio.id,
-            recipientMobile: formatMobileForWhatsApp(studio.phone),
+            recipientMobile: formatMobile(studio.phone),
             recipientType: "PHOTOGRAPHER",
             campaignName: "subscription_renewed",
             userName: studio.name,
@@ -423,7 +423,7 @@ export async function POST(request: NextRequest) {
         if (studio?.phone) {
           sendAndLog({
             studioId: studio.id,
-            recipientMobile: formatMobileForWhatsApp(studio.phone),
+            recipientMobile: formatMobile(studio.phone),
             recipientType: "PHOTOGRAPHER",
             campaignName: "payment_failed_grace",
             userName: studio.name,

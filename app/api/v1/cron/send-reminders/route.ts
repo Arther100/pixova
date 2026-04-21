@@ -11,7 +11,7 @@ import { createSupabaseAdmin } from '@/lib/supabase';
 import { notifyEventReminder } from '@/lib/notifications';
 import { logSubscriptionEvent } from '@/lib/adminAuth';
 import { sendAndLog } from '@/lib/notifications';
-import { formatMobileForWhatsApp } from '@/lib/aisensy';
+import { formatMobile } from '@/lib/whatsapp';
 
 export async function GET(request: NextRequest) {
   try {
@@ -59,10 +59,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, ...results });
     }
 
-    // Get event reminder campaign name
-    const reminderCampaign = process.env.AISENSY_CAMPAIGN_EVENT_REMINDER_CLIENT
-      || process.env.AISENSY_CAMPAIGN_EVENT_REMINDER
-      || 'event_reminder_client';
+    // Get event reminder template name
+    const reminderCampaign = 'pixova_event_reminder';
 
     for (const booking of bookings) {
       results.processed++;
@@ -187,7 +185,7 @@ async function processSubscriptionExpiry(supabase: ReturnType<typeof createSupab
     if (studio?.phone) {
       sendAndLog({
         studioId: studio.id,
-        recipientMobile: formatMobileForWhatsApp(studio.phone),
+        recipientMobile: formatMobile(studio.phone),
         recipientType: 'PHOTOGRAPHER',
         campaignName: 'trial_expired_grace',
         userName: studio.name,
@@ -225,7 +223,7 @@ async function processSubscriptionExpiry(supabase: ReturnType<typeof createSupab
     if (studio?.phone) {
       sendAndLog({
         studioId: studio.id,
-        recipientMobile: formatMobileForWhatsApp(studio.phone),
+        recipientMobile: formatMobile(studio.phone),
         recipientType: 'PHOTOGRAPHER',
         campaignName: 'access_expired',
         userName: studio.name,

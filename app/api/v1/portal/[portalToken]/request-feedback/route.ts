@@ -68,7 +68,7 @@ export async function POST(
         bookingId: booking.id,
         recipientMobile: clientRes.data.phone,
         recipientType: 'CLIENT',
-        campaignName: process.env.AISENSY_CAMPAIGN_FEEDBACK_REQUEST || 'feedback_request',
+        campaignName: 'pixova_event_reminder',
         userName: clientRes.data.name,
         templateParams: [
           clientRes.data.name,

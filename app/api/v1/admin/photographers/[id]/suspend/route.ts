@@ -15,7 +15,7 @@ import {
   serverErrorResponse,
 } from '@/lib/api-helpers';
 import { sendAndLog } from '@/lib/notifications';
-import { formatMobileForWhatsApp } from '@/lib/aisensy';
+import { formatMobile } from '@/lib/whatsapp';
 import { z } from 'zod';
 
 const suspendSchema = z.object({
@@ -65,7 +65,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   if (studio?.phone) {
     sendAndLog({
       studioId: studio.id,
-      recipientMobile: formatMobileForWhatsApp(studio.phone),
+      recipientMobile: formatMobile(studio.phone),
       recipientType: 'PHOTOGRAPHER',
       campaignName: 'account_suspended',
       userName: studio.name,

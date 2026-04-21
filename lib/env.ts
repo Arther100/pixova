@@ -12,7 +12,9 @@ const requiredServer = [
   "RAZORPAY_KEY_ID",
   "RAZORPAY_KEY_SECRET",
   "RAZORPAY_WEBHOOK_SECRET",
-  "AISENSY_API_KEY",
+  "META_WHATSAPP_TOKEN",
+  "META_PHONE_NUMBER_ID",
+  "META_WABA_ID",
   "MSG91_AUTH_KEY",
 ] as const;
 
@@ -56,11 +58,11 @@ export const env = {
   razorpayKeySecret: getEnv("RAZORPAY_KEY_SECRET"),
   razorpayWebhookSecret: getEnv("RAZORPAY_WEBHOOK_SECRET"),
 
-  // AiSensy (WhatsApp)
-  aisensyApiKey: getEnv("AISENSY_API_KEY"),
-  aisensyBaseUrl:
-    process.env.AISENSY_BASE_URL ||
-    "https://backend.aisensy.com/campaign/t1/api/v2",
+  // Meta WhatsApp Cloud API
+  metaWhatsAppToken: getEnv("META_WHATSAPP_TOKEN"),
+  metaPhoneNumberId: getEnv("META_PHONE_NUMBER_ID"),
+  metaWabaId: getEnv("META_WABA_ID"),
+  metaWebhookVerifyToken: process.env.META_WEBHOOK_VERIFY_TOKEN || "",
 
   // MSG91 (SMS)
   msg91AuthKey: getEnv("MSG91_AUTH_KEY"),

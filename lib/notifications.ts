@@ -1,17 +1,16 @@
 // ============================================
 // MOD-07: Notification Service
 // All notification calls go through this file.
-// Uses lib/aisensy.ts for WhatsApp delivery.
+// Uses lib/whatsapp.ts for Meta WhatsApp Cloud API.
 // ============================================
 
 import 'server-only';
 import {
-  sendWhatsApp,
-  formatMobileForWhatsApp,
-  formatAmountForMessage,
-  formatDateForMessage,
-  type AiSensyResult,
-} from './aisensy';
+  sendWhatsAppTemplate,
+  formatAmount,
+  formatDate,
+  type WhatsAppResult,
+} from './whatsapp';
 import { createSupabaseAdmin } from './supabase';
 
 // ─── Types ────────────────────────────────────
@@ -31,7 +30,7 @@ async function logNotification(params: {
   recipientType: 'PHOTOGRAPHER' | 'CLIENT';
   campaignName: string;
   templateParams: string[];
-  result: AiSensyResult;
+  result: WhatsAppResult;
 }): Promise<void> {
   try {
     const supabase = createSupabaseAdmin();
@@ -83,10 +82,10 @@ export async function sendAndLog(params: {
   campaignName: string;
   userName: string;
   templateParams: string[];
-}): Promise<AiSensyResult> {
+}): Promise<WhatsAppResult> {
   // Skip if no mobile
   if (!params.recipientMobile) {
-    const result: AiSensyResult = {
+    const result: WhatsAppResult = {
       success: false,
       error: `No ${params.recipientType.toLowerCase()} mobile set`,
     };
@@ -102,11 +101,15 @@ export async function sendAndLog(params: {
     return result;
   }
 
-  const result = await sendWhatsApp({
-    campaignName: params.campaignName,
-    destination: formatMobileForWhatsApp(params.recipientMobile),
-    userName: params.userName,
-    templateParams: params.templateParams,
+  const result = await sendWhatsAppTemplate({
+    to: params.recipientMobile,
+    templateName: params.campaignName,
+    components: [
+      {
+        type: 'body',
+        parameters: params.templateParams.map((text) => ({ type: 'text', text })),
+      },
+    ],
   });
 
   await logNotification({
@@ -123,7 +126,7 @@ export async function sendAndLog(params: {
 }
 
 // ─── NOTIFICATION 1: Booking Confirmed ────────
-// Sends to BOTH photographer AND client (separate templates)
+// Sends to BOTH photographer AND client
 export async function notifyBookingConfirmed(params: {
   studioId: string;
   bookingId: string;
@@ -138,47 +141,37 @@ export async function notifyBookingConfirmed(params: {
   const enabled = await isEnabled(params.studioId, 'notify_booking_confirmed');
   if (!enabled) return;
 
-  const formattedDate = formatDateForMessage(params.eventDate);
-  const formattedAmount = formatAmountForMessage(params.totalAmount);
+  const formattedDate = formatDate(params.eventDate);
+  const formattedAmount = formatAmount(params.totalAmount);
 
-  // CLIENT template: {{1}}=name, {{2}}=eventType, {{3}}=date, {{4}}=amount, {{5}}=ref
-  const clientCampaign = process.env.AISENSY_CAMPAIGN_BOOKING_CONFIRMED_CLIENT
-    || process.env.AISENSY_CAMPAIGN_BOOKING_CONFIRMED
-    || 'booking_confirmed_client';
+  const templateParams = [
+    params.clientName,
+    params.eventType,
+    formattedDate,
+    formattedAmount,
+    params.bookingRef,
+  ];
 
+  // CLIENT
   await sendAndLog({
     studioId: params.studioId,
     bookingId: params.bookingId,
     recipientMobile: params.clientMobile,
     recipientType: 'CLIENT',
-    campaignName: clientCampaign,
+    campaignName: 'pixova_booking_confirmed',
     userName: params.clientName,
-    templateParams: [
-      params.clientName,
-      params.eventType,
-      formattedDate,
-      formattedAmount,
-      params.bookingRef,
-    ],
+    templateParams,
   });
 
-  // PHOTOGRAPHER template: {{1}}=clientName, {{2}}=eventType, {{3}}=date, {{4}}=ref
-  const photographerCampaign = process.env.AISENSY_CAMPAIGN_BOOKING_CONFIRMED_PHOTOGRAPHER
-    || 'booking_confirmed_photographer';
-
+  // PHOTOGRAPHER
   await sendAndLog({
     studioId: params.studioId,
     bookingId: params.bookingId,
     recipientMobile: params.photographerMobile,
     recipientType: 'PHOTOGRAPHER',
-    campaignName: photographerCampaign,
+    campaignName: 'pixova_booking_confirmed',
     userName: 'Photographer',
-    templateParams: [
-      params.clientName,
-      params.eventType,
-      formattedDate,
-      params.bookingRef,
-    ],
+    templateParams,
   });
 }
 
@@ -197,20 +190,18 @@ export async function notifyPaymentReceived(params: {
   const enabled = await isEnabled(params.studioId, 'notify_payment_received');
   if (!enabled) return;
 
-  const campaignName = process.env.AISENSY_CAMPAIGN_PAYMENT_RECEIVED || 'payment_received';
-
   // {{1}}=clientName, {{2}}=amountPaid, {{3}}=balance, {{4}}=receipt, {{5}}=ref
   await sendAndLog({
     studioId: params.studioId,
     bookingId: params.bookingId,
     recipientMobile: params.photographerMobile,
     recipientType: 'PHOTOGRAPHER',
-    campaignName,
+    campaignName: 'pixova_payment_received',
     userName: 'Photographer',
     templateParams: [
       params.clientName,
-      formatAmountForMessage(params.amountPaid),
-      formatAmountForMessage(params.balanceAmount),
+      formatAmount(params.amountPaid),
+      formatAmount(params.balanceAmount),
       params.receiptNumber,
       params.bookingRef,
     ],
@@ -231,22 +222,20 @@ export async function notifyAgreementReady(params: {
   const enabled = await isEnabled(params.studioId, 'notify_agreement_ready');
   if (!enabled) return;
 
-  const campaignName = process.env.AISENSY_CAMPAIGN_AGREEMENT_READY || 'agreement_ready';
   const agreementUrl = `${process.env.NEXT_PUBLIC_APP_URL}/agreement/${params.agreementId}`;
 
-  // {{1}}=clientName, {{2}}=studioName, {{3}}=agreementUrl, {{4}}=ref
+  // {{1}}=clientName, {{2}}=studioName, {{3}}=agreementUrl
   await sendAndLog({
     studioId: params.studioId,
     bookingId: params.bookingId,
     recipientMobile: params.clientMobile,
     recipientType: 'CLIENT',
-    campaignName,
+    campaignName: 'pixova_agreement_ready',
     userName: params.clientName,
     templateParams: [
       params.clientName,
       params.studioName,
       agreementUrl,
-      params.bookingRef,
     ],
   });
 }
@@ -266,7 +255,6 @@ export async function notifyGalleryPublished(params: {
   const enabled = await isEnabled(params.studioId, 'notify_gallery_published');
   if (!enabled) return;
 
-  const campaignName = process.env.AISENSY_CAMPAIGN_GALLERY_PUBLISHED || 'gallery_published';
   const galleryUrl = `${process.env.NEXT_PUBLIC_APP_URL}/g/${params.gallerySlug}`;
 
   // {{1}}=clientName, {{2}}=studioName, {{3}}=photoCount, {{4}}=galleryUrl
@@ -275,7 +263,7 @@ export async function notifyGalleryPublished(params: {
     bookingId: params.bookingId,
     recipientMobile: params.clientMobile,
     recipientType: 'CLIENT',
-    campaignName,
+    campaignName: 'pixova_gallery_published',
     userName: params.clientName,
     templateParams: [
       params.clientName,
@@ -302,7 +290,6 @@ export async function notifyPaymentLink(params: {
   const enabled = await isEnabled(params.studioId, 'notify_payment_link');
   if (!enabled) return;
 
-  const campaignName = process.env.AISENSY_CAMPAIGN_PAYMENT_LINK || 'payment_link_sent';
   const expiryDate = new Date(params.expiresAt).toLocaleDateString('en-IN', {
     day: 'numeric',
     month: 'short',
@@ -315,12 +302,12 @@ export async function notifyPaymentLink(params: {
     bookingId: params.bookingId,
     recipientMobile: params.clientMobile,
     recipientType: 'CLIENT',
-    campaignName,
+    campaignName: 'pixova_payment_link',
     userName: params.clientName,
     templateParams: [
       params.clientName,
       params.studioName,
-      formatAmountForMessage(params.amount),
+      formatAmount(params.amount),
       params.bookingRef,
       params.paymentUrl,
       expiryDate,
@@ -329,7 +316,7 @@ export async function notifyPaymentLink(params: {
 }
 
 // ─── NOTIFICATION 6: Event Reminder ───────────
-// Sends to BOTH photographer AND client (separate templates)
+// Sends to BOTH photographer AND client
 export async function notifyEventReminder(params: {
   studioId: string;
   bookingId: string;
@@ -346,50 +333,39 @@ export async function notifyEventReminder(params: {
   const enabled = await isEnabled(params.studioId, 'notify_event_reminder');
   if (!enabled) return;
 
-  const formattedDate = formatDateForMessage(params.eventDate);
+  const formattedDate = formatDate(params.eventDate);
   const venue = params.venueName
     ? `${params.venueName}, ${params.venueCity ?? ''}`
     : params.venueCity ?? 'Venue TBD';
 
-  // CLIENT template: {{1}}=name, {{2}}=eventType, {{3}}=date, {{4}}=venue, {{5}}=balance, {{6}}=ref
-  const clientCampaign = process.env.AISENSY_CAMPAIGN_EVENT_REMINDER_CLIENT
-    || process.env.AISENSY_CAMPAIGN_EVENT_REMINDER
-    || 'event_reminder_client';
+  const templateParams = [
+    params.clientName,
+    params.eventType,
+    formattedDate,
+    venue,
+    formatAmount(params.balanceAmount),
+    params.bookingRef,
+  ];
 
+  // CLIENT
   await sendAndLog({
     studioId: params.studioId,
     bookingId: params.bookingId,
     recipientMobile: params.clientMobile,
     recipientType: 'CLIENT',
-    campaignName: clientCampaign,
+    campaignName: 'pixova_event_reminder',
     userName: params.clientName,
-    templateParams: [
-      params.clientName,
-      params.eventType,
-      formattedDate,
-      venue,
-      formatAmountForMessage(params.balanceAmount),
-      params.bookingRef,
-    ],
+    templateParams,
   });
 
-  // PHOTOGRAPHER template: {{1}}=eventType, {{2}}=clientName, {{3}}=date, {{4}}=venue, {{5}}=ref
-  const photographerCampaign = process.env.AISENSY_CAMPAIGN_EVENT_REMINDER_PHOTOGRAPHER
-    || 'event_reminder_photographer';
-
+  // PHOTOGRAPHER
   await sendAndLog({
     studioId: params.studioId,
     bookingId: params.bookingId,
     recipientMobile: params.photographerMobile,
     recipientType: 'PHOTOGRAPHER',
-    campaignName: photographerCampaign,
+    campaignName: 'pixova_event_reminder',
     userName: 'Photographer',
-    templateParams: [
-      params.eventType,
-      params.clientName,
-      formattedDate,
-      venue,
-      params.bookingRef,
-    ],
+    templateParams,
   });
 }
