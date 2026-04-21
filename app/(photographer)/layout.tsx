@@ -2,6 +2,7 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "@/lib/theme";
@@ -215,8 +216,9 @@ export default function PhotographerLayout({
         }`}
       >
         <div className="flex h-16 items-center justify-between border-b border-gray-200 px-6 dark:border-gray-800">
-          <Link href="/dashboard" className="font-display text-xl font-bold text-brand-600">
-            Pixova
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <Image src="/icon.png" alt="Pixova" width={28} height={28} className="rounded-md" />
+            <span className="font-display text-xl font-bold text-brand-600">Pixova</span>
           </Link>
           {/* Close button (mobile) */}
           <button
@@ -279,9 +281,10 @@ export default function PhotographerLayout({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <span className="font-display text-lg font-bold text-brand-600 lg:hidden">
-              Pixova
-            </span>
+            <Link href="/dashboard" className="flex items-center gap-2 lg:hidden">
+              <Image src="/icon.png" alt="Pixova" width={24} height={24} className="rounded-md" />
+              <span className="font-display text-lg font-bold text-brand-600">Pixova</span>
+            </Link>
           </div>
 
           {/* Right: profile dropdown */}

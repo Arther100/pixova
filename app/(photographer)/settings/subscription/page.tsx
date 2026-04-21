@@ -59,13 +59,13 @@ export default function SubscriptionPage() {
       const res = await fetch("/api/v1/subscription/upgrade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan_name: planSlug, payment_method: "payment_link" }),
+        body: JSON.stringify({ plan_name: planSlug, payment_method: "subscription" }),
       });
       const json = await res.json();
-      if (json.success && json.data?.short_url) {
-        window.location.href = json.data.short_url;
+      if (json.success && json.data?.subscription_url) {
+        window.location.href = json.data.subscription_url;
       } else {
-        setActionError(json.error || "Failed to create payment link");
+        setActionError(json.error || "Failed to create subscription");
       }
     } catch {
       setActionError("Network error. Please try again.");
