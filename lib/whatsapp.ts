@@ -214,7 +214,7 @@ interface SendOtpResult {
   error?: string;
 }
 
-export async function sendOTP(
+export async function sendOtp(
   mobile: string,
   otp: string
 ): Promise<SendOtpResult> {
@@ -239,9 +239,6 @@ export async function sendOTP(
     error: result.error ?? 'WhatsApp delivery failed',
   };
 }
-
-// Keep backward-compatible alias for existing import
-export { sendOTP as sendOtp };
 
 // ═══════════════════════════════════════════════
 // NOTIFICATION 1: Booking Confirmed

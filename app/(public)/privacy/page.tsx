@@ -48,7 +48,7 @@ export default function PrivacyPolicyPage() {
         <div>
           <h2 className="text-lg font-semibold text-gray-900">4. WhatsApp Communications</h2>
           <p className="mt-2">
-            Pixova sends transactional messages via <strong>WhatsApp Business API</strong> (powered by AiSensy). These include booking confirmations, reminders, gallery links, and payment notifications. Messages are sent only for actions initiated on the platform. We do not use your number for marketing without consent.
+            Pixova sends transactional messages via <strong>Meta WhatsApp Cloud API</strong>. These include booking confirmations, reminders, gallery links, and payment notifications. Messages are sent only for actions initiated on the platform. We do not use your number for marketing without consent.
           </p>
         </div>
 
@@ -76,7 +76,7 @@ export default function PrivacyPolicyPage() {
             <li><strong>Supabase</strong> — database and authentication</li>
             <li><strong>Cloudflare R2</strong> — photo storage</li>
             <li><strong>Razorpay</strong> — payment processing</li>
-            <li><strong>AiSensy</strong> — WhatsApp messaging</li>
+            <li><strong>Meta WhatsApp Cloud API</strong> — WhatsApp messaging</li>
             <li><strong>Vercel</strong> — application hosting</li>
           </ul>
         </div>

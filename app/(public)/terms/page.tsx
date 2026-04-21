@@ -42,7 +42,7 @@ export default function TermsOfServicePage() {
             <li>Create and share photo galleries</li>
             <li>Generate agreements and invoices</li>
             <li>Collect payments via integrated payment links</li>
-            <li>Send notifications via WhatsApp (through AiSensy / WhatsApp Business API)</li>
+            <li>Send notifications via WhatsApp (through Meta WhatsApp Cloud API)</li>
           </ul>
         </div>
 

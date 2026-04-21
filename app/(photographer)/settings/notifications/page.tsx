@@ -219,7 +219,7 @@ export default function NotificationSettingsPage() {
             </svg>
             <p className="text-sm text-blue-700 dark:text-blue-300">
               Notifications are sent via WhatsApp using your verified business number.
-              Message templates are managed in your AiSensy dashboard.
+              Message templates are managed in Meta Business Platform.
             </p>
           </div>
         </div>
