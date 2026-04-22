@@ -29,7 +29,8 @@ const onboardedOnlyPaths = [
 
 // Subscription bypass routes (allowed even when expired/suspended)
 const subscriptionBypassPaths = [
-  "/settings/subscription",
+  "/settings",
+  "/dashboard",
   "/suspended",
   "/onboarding",
 ];
@@ -201,8 +202,8 @@ export async function middleware(request: NextRequest) {
 
         const isAllowed =
           status === "ACTIVE" ||
-          status === "CANCELLED" || // still access until period end
-          (status === "TRIAL" || status === "TRIALING") && now < periodEnd ||
+          (status === "CANCELLED" && now < periodEnd) ||
+          ((status === "TRIAL" || status === "TRIALING") && now < periodEnd) ||
           (status === "GRACE" && graceEnd && now < graceEnd);
 
         if (!isAllowed) {
