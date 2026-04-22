@@ -42,26 +42,42 @@ export async function sendWhatsAppTemplate(params: {
       return { success: false, error: 'Missing META_PHONE_NUMBER_ID or META_WHATSAPP_TOKEN' };
     }
 
+    const formattedPhone = formatMobile(params.to);
+    const requestBody = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: formattedPhone,
+      type: 'template',
+      template: {
+        name: params.templateName,
+        language: { code: 'en' },
+        components: params.components,
+      },
+    };
+
+    console.log('[Meta Debug]', {
+      phoneNumberId,
+      token: token?.slice(0, 20) + '...',
+      to: formattedPhone,
+      templateName: params.templateName,
+    });
+    console.log('[Meta Request Body]', JSON.stringify(requestBody, null, 2));
+
     const res = await fetch(`${META_API}/${phoneNumberId}/messages`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        recipient_type: 'individual',
-        to: formatMobile(params.to),
-        type: 'template',
-        template: {
-          name: params.templateName,
-          language: { code: 'en_US' },
-          components: params.components,
-        },
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     const data = await res.json();
+
+    console.log('[Meta Response]', {
+      status: res.status,
+      body: JSON.stringify(data, null, 2),
+    });
 
     if (!res.ok) {
       const errMsg = data?.error?.message ?? `HTTP ${res.status}`;
@@ -218,6 +234,8 @@ export async function sendOtp(
   mobile: string,
   otp: string
 ): Promise<SendOtpResult> {
+  console.log('[OTP Debug] Sending OTP', { mobile, otp });
+
   const result = await sendWhatsAppTemplate({
     to: mobile,
     templateName: 'pixova_otp',
@@ -228,6 +246,8 @@ export async function sendOtp(
       },
     ],
   });
+
+  console.log('[OTP Result]', result);
 
   if (result.success) {
     return { success: true, channel: 'whatsapp' };
