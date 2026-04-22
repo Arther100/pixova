@@ -28,9 +28,17 @@ const onboardedOnlyPaths = [
 ];
 
 // Subscription bypass routes (allowed even when expired/suspended)
+// All photographer pages are accessible — limits enforced at API/page level
 const subscriptionBypassPaths = [
-  "/settings",
   "/dashboard",
+  "/bookings",
+  "/galleries",
+  "/clients",
+  "/payments",
+  "/messages",
+  "/reviews",
+  "/settings",
+  "/calendar",
   "/suspended",
   "/onboarding",
 ];
