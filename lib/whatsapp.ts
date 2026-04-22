@@ -17,6 +17,8 @@ export interface WhatsAppResult {
 
 interface TemplateComponent {
   type: string;
+  sub_type?: string;
+  index?: string;
   parameters: Array<{ type: string; text: string }>;
 }
 
@@ -236,12 +238,19 @@ export async function sendOtp(
 ): Promise<SendOtpResult> {
   console.log('[OTP Debug] Sending OTP', { mobile, otp });
 
+  // Authentication templates with "Copy code" button require body + button components
   const result = await sendWhatsAppTemplate({
     to: mobile,
     templateName: 'pixova_otp',
     components: [
       {
         type: 'body',
+        parameters: [{ type: 'text', text: otp }],
+      },
+      {
+        type: 'button',
+        sub_type: 'url',
+        index: '0',
         parameters: [{ type: 'text', text: otp }],
       },
     ],
