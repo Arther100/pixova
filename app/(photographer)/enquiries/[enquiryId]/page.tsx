@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 
 interface EnquiryFull {
@@ -32,7 +32,6 @@ interface EsRow {
 
 export default function PhotographerEnquiryDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const enquiryId = params.enquiryId as string;
 
   const [enquiry, setEnquiry] = useState<EnquiryFull | null>(null);
@@ -203,7 +202,7 @@ export default function PhotographerEnquiryDetailPage() {
         {enquiry.message && (
           <div className="mt-4 rounded-xl bg-gray-50 p-4 dark:bg-gray-800">
             <p className="text-xs font-medium text-gray-500 mb-2">Message from client</p>
-            <p className="text-sm text-gray-700 dark:text-gray-300">"{enquiry.message}"</p>
+            <p className="text-sm text-gray-700 dark:text-gray-300">&ldquo;{enquiry.message}&rdquo;</p>
           </div>
         )}
       </div>

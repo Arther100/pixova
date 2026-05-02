@@ -137,7 +137,7 @@ export default function EnquiryDetailPage() {
           {enquiry.message && (
             <div className="mt-4 rounded-xl bg-gray-50 p-3 dark:bg-gray-800">
               <p className="text-xs font-medium text-gray-500 mb-1">Your message</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">"{enquiry.message}"</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300">&ldquo;{enquiry.message}&rdquo;</p>
             </div>
           )}
         </div>
@@ -182,7 +182,7 @@ export default function EnquiryDetailPage() {
                       </div>
                     )}
                     {r.quote_note && (
-                      <p className="text-sm text-gray-700 dark:text-gray-300">"{r.quote_note}"</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">&ldquo;{r.quote_note}&rdquo;</p>
                     )}
                     <div className="flex gap-2">
                       <Link
