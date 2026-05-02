@@ -50,7 +50,8 @@ export async function GET() {
 
     const supabase = createSupabaseAdmin();
 
-    const { data: profile, error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: profile, error } = await (supabase as any)
       .from('studio_profiles')
       .select(
         'id, name, slug, tagline, bio, phone, email, city, state, pincode, gstin, ' +
@@ -67,7 +68,7 @@ export async function GET() {
       supabase
         .from('packages')
         .select('id', { count: 'exact', head: true })
-        .eq('studio_id', profile.id)
+        .eq('studio_id', (profile as { id: string }).id)
         .eq('is_active', true),
       supabase
         .from('gallery_photos')
@@ -76,7 +77,7 @@ export async function GET() {
         .eq('show_in_portfolio', true),
     ]);
 
-    return successResponse({ profile: { ...profile, package_count: packageCount ?? 0, portfolio_count: portfolioCount ?? 0 } });
+    return successResponse({ profile: { ...(profile as object), package_count: packageCount ?? 0, portfolio_count: portfolioCount ?? 0 } });
   } catch (err) {
     console.error('[settings/profile] GET error:', err);
     return serverErrorResponse();
@@ -115,7 +116,8 @@ export async function PATCH(request: NextRequest) {
     if (parsed.data.instagram !== undefined) update.instagram = parsed.data.instagram;
     if (parsed.data.website !== undefined) update.website = parsed.data.website;
 
-    const { data: updated, error } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: updated, error } = await (supabase as any)
       .from('studio_profiles')
       .update(update)
       .eq('photographer_id', session.photographerId)
@@ -131,13 +133,15 @@ export async function PATCH(request: NextRequest) {
       return serverErrorResponse('Failed to update profile');
     }
 
+    const u = updated as Record<string, unknown>;
+
     // Auto-compute profile_complete after save
     // Requires: name + bio (≥50 chars) + city. Packages/portfolio shown in checklist but don't block listing.
     const [{ count: packageCount }, { count: portfolioCount }] = await Promise.all([
       supabase
         .from('packages')
         .select('id', { count: 'exact', head: true })
-        .eq('studio_id', updated.id)
+        .eq('studio_id', u.id as string)
         .eq('is_active', true),
       supabase
         .from('gallery_photos')
@@ -146,19 +150,20 @@ export async function PATCH(request: NextRequest) {
         .eq('show_in_portfolio', true),
     ]);
 
-    const bioOk = typeof updated.bio === 'string' && updated.bio.length >= 50;
-    const isComplete = !!(updated.name && bioOk && updated.city);
+    const bioOk = typeof u.bio === 'string' && u.bio.length >= 50;
+    const isComplete = !!(u.name && bioOk && u.city);
 
-    if (isComplete !== updated.profile_complete) {
-      await supabase
+    if (isComplete !== u.profile_complete) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
         .from('studio_profiles')
         .update({ profile_complete: isComplete })
-        .eq('id', updated.id);
+        .eq('id', u.id);
     }
 
     return successResponse({
       profile: {
-        ...updated,
+        ...u,
         profile_complete: isComplete,
         package_count: packageCount ?? 0,
         portfolio_count: portfolioCount ?? 0,
