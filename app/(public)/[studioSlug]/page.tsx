@@ -111,7 +111,7 @@ async function fetchStudio(slug: string) {
         thumbnail_url: photoUrl(p.thumbnail_key || p.storage_key),
       })),
       reviews: reviewsRes.data || [],
-      blockedDates: Array.from(new Set(blockedDates)),
+      blocked_dates: Array.from(new Set(blockedDates)),
     };
   } catch {
     return null;
