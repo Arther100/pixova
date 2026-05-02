@@ -24,6 +24,8 @@ interface GalleryInfo {
   download_enabled: boolean;
   published_at: string | null;
   selection_locked?: boolean;
+  allow_selection?: boolean;
+  selection_limit?: number | null;
 }
 
 export default function PortalGalleryPage() {
@@ -55,7 +57,7 @@ export default function PortalGalleryPage() {
 
         // Merge client_favourited from selection data into photos
         const favouritedIds = new Set(
-          (selectionJson.data?.selected_photos || []).map((p: { photo_id: string }) => p.photo_id)
+          (selectionJson.data?.selected_photos || []).map((p: { id: string }) => p.id)
         );
         const enrichedPhotos = (galleryJson.data.photos || []).map((p: GalleryPhoto) => ({
           ...p,
@@ -77,7 +79,7 @@ export default function PortalGalleryPage() {
     fetchGallery();
   }, [fetchGallery]);
 
-  const handleToggleFavourite = async (photoId: string) => {
+  const handleToggleSelect = async (photoId: string) => {
     if (selectionLocked || togglingId) return;
     setTogglingId(photoId);
 
@@ -85,6 +87,18 @@ export default function PortalGalleryPage() {
     if (!photo) { setTogglingId(null); return; }
 
     const newValue = !photo.client_favourited;
+    const selectionLimit = gallery?.selection_limit;
+
+    // Client-side limit pre-check
+    if (newValue && selectionLimit) {
+      const currentSelected = photos.filter((p) => p.client_favourited).length;
+      if (currentSelected >= selectionLimit) {
+        setToast(`Maximum ${selectionLimit} photos allowed. Deselect a photo first.`);
+        setTimeout(() => setToast(null), 3000);
+        setTogglingId(null);
+        return;
+      }
+    }
 
     // Optimistic update
     setPhotos((prev) =>
@@ -92,10 +106,17 @@ export default function PortalGalleryPage() {
     );
 
     try {
-      const res = await fetch(`/api/v1/portal/me/gallery/photos/${photoId}/favourite`, {
+      const endpoint = gallery?.allow_selection
+        ? `/api/v1/portal/me/gallery/photos/${photoId}/select`
+        : `/api/v1/portal/me/gallery/photos/${photoId}/favourite`;
+      const body = gallery?.allow_selection
+        ? { selected: newValue }
+        : { favourited: newValue };
+
+      const res = await fetch(endpoint, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ favourited: newValue }),
+        body: JSON.stringify(body),
       });
       const json = await res.json();
 
@@ -177,11 +198,18 @@ export default function PortalGalleryPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold text-gray-900">
-                  ♥ {selectedCount} photo{selectedCount !== 1 ? "s" : ""} selected
+                  {gallery?.allow_selection && gallery.selection_limit
+                    ? `♥ ${selectedCount} of ${gallery.selection_limit} selected`
+                    : `♥ ${selectedCount} photo${selectedCount !== 1 ? "s" : ""} selected`}
                 </p>
                 {selectedCount === 0 && !selectionLocked && (
                   <p className="text-xs text-gray-400">
                     Tap the ♥ on photos you love. Your photographer will edit your picks.
+                  </p>
+                )}
+                {gallery?.allow_selection && gallery.selection_limit && selectedCount >= gallery.selection_limit && !selectionLocked && (
+                  <p className="text-xs font-medium text-amber-600">
+                    Maximum {gallery.selection_limit} photos reached.
                   </p>
                 )}
               </div>
@@ -260,7 +288,7 @@ export default function PortalGalleryPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleToggleFavourite(photo.id);
+                      handleToggleSelect(photo.id);
                     }}
                     disabled={selectionLocked}
                     className={`absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full shadow-md transition-all ${
@@ -326,7 +354,7 @@ export default function PortalGalleryPage() {
               {lightboxIdx + 1} / {photos.length}
             </p>
             <button
-              onClick={() => handleToggleFavourite(photos[lightboxIdx].id)}
+              onClick={() => handleToggleSelect(photos[lightboxIdx].id)}
               disabled={selectionLocked}
               className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
                 photos[lightboxIdx].client_favourited

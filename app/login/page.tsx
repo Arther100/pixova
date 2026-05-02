@@ -28,7 +28,81 @@ export default function LoginPage() {
 function LoginPageContent() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get("redirect");
+  const typeParam = searchParams.get("type");
   const { t } = useI18n();
+
+  // ── Tab ──
+  const [loginType, setLoginType] = useState<"photographer" | "client">(
+    typeParam === "client" ? "client" : "photographer"
+  );
+
+  // ── Client OTP state ──
+  const [clientStep, setClientStep] = useState<Step>("phone");
+  const [clientPhone, setClientPhone] = useState("");
+  const [clientOtp, setClientOtp] = useState("");
+  const [clientError, setClientError] = useState("");
+  const [clientSending, setClientSending] = useState(false);
+  const [clientCountdown, setClientCountdown] = useState(0);
+  const [clientVerifying, setClientVerifying] = useState(false);
+
+  useEffect(() => {
+    if (clientCountdown <= 0) return;
+    const t = setInterval(() => setClientCountdown((c) => c - 1), 1000);
+    return () => clearInterval(t);
+  }, [clientCountdown]);
+
+  const handleClientSendOtp = useCallback(async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    setClientError("");
+    setClientSending(true);
+    try {
+      const res = await fetch("/api/v1/client/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: `+91${clientPhone}` }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setClientStep("otp");
+        setClientCountdown(30);
+        // Dev mode: auto-fill OTP if returned
+        if (json.data?.dev_otp) {
+          setClientOtp(json.data.dev_otp);
+        }
+      } else {
+        setClientError(json.error || "Failed to send OTP");
+      }
+    } catch {
+      setClientError("Network error");
+    } finally {
+      setClientSending(false);
+    }
+  }, [clientPhone]);
+
+  const handleClientVerifyOtp = useCallback(async () => {
+    if (clientOtp.length !== 6) return;
+    setClientVerifying(true);
+    setClientError("");
+    try {
+      const res = await fetch("/api/v1/client/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: `+91${clientPhone}`, otp: clientOtp }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        const target = redirect || json.data?.redirectTo || "/account";
+        window.location.href = target;
+      } else {
+        setClientError(json.error || "Invalid OTP");
+        setClientOtp("");
+      }
+    } catch {
+      setClientError("Network error");
+    } finally {
+      setClientVerifying(false);
+    }
+  }, [clientOtp, clientPhone, redirect]);
 
   // ── State ──
   const [step, setStep] = useState<Step>("phone");
@@ -73,6 +147,10 @@ function LoginPageContent() {
         setChannel(data.data.channel);
         setStep("otp");
         setOtp("");
+        // Dev mode: auto-fill OTP if returned
+        if (data.data?.dev_otp) {
+          setOtp(data.data.dev_otp);
+        }
         setVerifyState("idle");
         setCountdown(30);
       } catch {
@@ -210,6 +288,98 @@ function LoginPageContent() {
 
         {/* Card */}
         <div className="mt-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+          {/* Tabs */}
+          <div className="mb-5 flex rounded-xl bg-gray-100 p-1 dark:bg-gray-800">
+            <button
+              type="button"
+              onClick={() => setLoginType("photographer")}
+              className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
+                loginType === "photographer"
+                  ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+              }`}
+            >
+              Photographer
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginType("client")}
+              className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
+                loginType === "client"
+                  ? "bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white"
+                  : "text-gray-500 hover:text-gray-700 dark:text-gray-400"
+              }`}
+            >
+              Client
+            </button>
+          </div>
+
+          {/* Client OTP flow */}
+          {loginType === "client" && (
+            <>
+              {clientStep === "phone" ? (
+                <form onSubmit={handleClientSendOtp} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      WhatsApp Number
+                    </label>
+                    <div className="mt-1 flex overflow-hidden rounded-xl border border-gray-300 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500 dark:border-gray-600">
+                      <span className="flex items-center border-r border-gray-300 bg-gray-50 px-3 text-sm text-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                        +91
+                      </span>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
+                        placeholder="10-digit number"
+                        value={clientPhone}
+                        onChange={(e) => { setClientPhone(e.target.value.replace(/\D/g, "")); setClientError(""); }}
+                        className="flex-1 px-3 py-2.5 text-sm outline-none dark:bg-gray-900 dark:text-gray-100"
+                        autoFocus
+                        required
+                      />
+                    </div>
+                  </div>
+                  {clientError && <p className="text-center text-xs text-red-500">{clientError}</p>}
+                  <Button type="submit" disabled={clientPhone.length !== 10 || clientSending} loading={clientSending} className="w-full">
+                    Send OTP via WhatsApp
+                  </Button>
+                </form>
+              ) : (
+                <div className="space-y-5">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">OTP sent to +91 {clientPhone.slice(0, 5)} {clientPhone.slice(5)}</p>
+                  </div>
+                  <OTPInput
+                    value={clientOtp}
+                    onChange={(val) => { setClientOtp(val); setClientError(""); if (val.length === 6) { setClientOtp(val); } }}
+                    disabled={clientVerifying}
+                    error={clientError}
+                  />
+                  {clientError && (
+                    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-center dark:border-red-800 dark:bg-red-900/20">
+                      <p className="text-sm text-red-600">{clientError}</p>
+                    </div>
+                  )}
+                  <Button onClick={handleClientVerifyOtp} disabled={clientOtp.length !== 6 || clientVerifying} loading={clientVerifying} className="w-full">
+                    Verify & Sign In
+                  </Button>
+                  <div className="flex flex-col items-center gap-2">
+                    <button type="button" onClick={handleClientSendOtp} disabled={clientCountdown > 0 || clientSending} className="text-xs font-medium text-brand-600 hover:text-brand-700 disabled:text-gray-400">
+                      {clientCountdown > 0 ? `Resend in ${clientCountdown}s` : "Resend OTP"}
+                    </button>
+                    <button type="button" onClick={() => { setClientStep("phone"); setClientOtp(""); setClientError(""); }} className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400">
+                      Change number
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Photographer OTP flow */}
+          {loginType === "photographer" && (
+            <>
           {step === "phone" ? (
             // ── Phone Step ──
             <form onSubmit={handleSendOtp} className="space-y-4">
@@ -325,6 +495,8 @@ function LoginPageContent() {
                 {t.login.minutes} • {t.login.maxAttempts}
               </p>
             </div>
+          )}
+            </>
           )}
         </div>
 

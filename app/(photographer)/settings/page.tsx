@@ -16,29 +16,42 @@ export default function SettingsPage() {
 
       <div className="mt-8 space-y-6">
         {/* Studio Profile */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {t.settings.studioProfile}
-          </h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t.settings.studioProfileDesc}
-          </p>
-          {/* Form placeholder */}
-          <div className="mt-4 text-sm text-gray-400 dark:text-gray-500 italic">
-            {t.settings.comingSoon}
+        <Link
+          href="/settings/profile"
+          className="block rounded-xl border border-gray-200 bg-white p-6 transition-colors hover:border-brand-200 hover:bg-brand-50/30 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-brand-800 dark:hover:bg-brand-900/10"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {t.settings.studioProfile}
+              </h2>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {t.settings.studioProfileDesc}
+              </p>
+            </div>
+            <svg className="h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
           </div>
-        </div>
+        </Link>
 
         {/* Subscription */}
-        <div className="rounded-xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t.settings.subscriptionTitle}</h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t.settings.subscriptionDesc}
-          </p>
-          <div className="mt-4 text-sm text-gray-400 dark:text-gray-500 italic">
-            {t.settings.comingSoon}
+        <Link
+          href="/settings/subscription"
+          className="block rounded-xl border border-gray-200 bg-white p-6 transition-colors hover:border-brand-200 hover:bg-brand-50/30 dark:border-gray-800 dark:bg-gray-900 dark:hover:border-brand-800 dark:hover:bg-brand-900/10"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t.settings.subscriptionTitle}</h2>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {t.settings.subscriptionDesc}
+              </p>
+            </div>
+            <svg className="h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
           </div>
-        </div>
+        </Link>
 
         {/* Cancellation Policy */}
         <Link

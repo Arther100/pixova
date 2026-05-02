@@ -238,6 +238,16 @@ export async function sendOtp(
 ): Promise<SendOtpResult> {
   console.log('[OTP Debug] Sending OTP', { mobile, otp });
 
+  // Dev bypass: if WhatsApp is not configured, log OTP to console
+  const hasWhatsApp = !!(process.env.META_PHONE_NUMBER_ID && process.env.META_WHATSAPP_TOKEN);
+  if (!hasWhatsApp) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`\n🔑 [DEV] Photographer OTP for ${mobile}: ${otp}\n`);
+      return { success: true, channel: 'whatsapp' };
+    }
+    return { success: false, channel: 'whatsapp', error: 'WhatsApp not configured' };
+  }
+
   // Authentication templates with "Copy code" button require body + button components
   const result = await sendWhatsAppTemplate({
     to: mobile,
@@ -522,5 +532,110 @@ export async function notifyEventReminder(params: {
     });
   } catch (err) {
     console.error('[whatsapp] notifyEventReminder error:', err);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// NOTIFICATION 7: New Enquiry (to photographer)
+// ═══════════════════════════════════════════════
+
+export async function notifyNewEnquiry(params: {
+  photographerPhone: string;
+  clientName: string;
+  eventType: string;
+  eventDate: string;
+  budget: string;
+  eventCity: string;
+  enquiryUrl: string;
+}): Promise<WhatsAppResult> {
+  try {
+    return await sendWhatsAppTemplate({
+      to: params.photographerPhone,
+      templateName: 'pixova_new_enquiry',
+      components: [
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: params.clientName },
+            { type: 'text', text: params.eventType },
+            { type: 'text', text: formatDate(params.eventDate) },
+            { type: 'text', text: params.budget },
+            { type: 'text', text: params.eventCity },
+            { type: 'text', text: params.enquiryUrl },
+          ],
+        },
+      ],
+    });
+  } catch (err) {
+    console.error('[whatsapp] notifyNewEnquiry error:', err);
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+  }
+}
+
+// ═══════════════════════════════════════════════
+// NOTIFICATION 8: Enquiry Sent confirmation (to client)
+// ═══════════════════════════════════════════════
+
+export async function notifyEnquirySent(params: {
+  clientPhone: string;
+  clientName: string;
+  studiosCount: number;
+  eventType: string;
+  eventDate: string;
+  enquiryUrl: string;
+}): Promise<WhatsAppResult> {
+  try {
+    return await sendWhatsAppTemplate({
+      to: params.clientPhone,
+      templateName: 'pixova_enquiry_sent',
+      components: [
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: params.clientName },
+            { type: 'text', text: params.studiosCount.toString() },
+            { type: 'text', text: params.eventType },
+            { type: 'text', text: formatDate(params.eventDate) },
+            { type: 'text', text: params.enquiryUrl },
+          ],
+        },
+      ],
+    });
+  } catch (err) {
+    console.error('[whatsapp] notifyEnquirySent error:', err);
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+  }
+}
+
+// ═══════════════════════════════════════════════
+// NOTIFICATION 9: Enquiry Replied (to client)
+// ═══════════════════════════════════════════════
+
+export async function notifyEnquiryReplied(params: {
+  clientPhone: string;
+  clientName: string;
+  studioName: string;
+  quote: string;
+  enquiryUrl: string;
+}): Promise<WhatsAppResult> {
+  try {
+    return await sendWhatsAppTemplate({
+      to: params.clientPhone,
+      templateName: 'pixova_enquiry_replied',
+      components: [
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: params.clientName },
+            { type: 'text', text: params.studioName },
+            { type: 'text', text: params.quote },
+            { type: 'text', text: params.enquiryUrl },
+          ],
+        },
+      ],
+    });
+  } catch (err) {
+    console.error('[whatsapp] notifyEnquiryReplied error:', err);
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
   }
 }

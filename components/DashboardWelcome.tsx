@@ -102,7 +102,7 @@ export function DashboardWelcome({ data }: DashboardWelcomeProps) {
         <StatCard
           label={t.dashboard.pendingEnquiries}
           value={stats.pendingEnquiries.toString()}
-          href="/bookings"
+          href="/enquiries"
           iconBg="bg-orange-50 dark:bg-orange-900/30"
           icon={
             <svg className="h-4 w-4 text-orange-600 dark:text-orange-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
@@ -194,6 +194,13 @@ export function DashboardWelcome({ data }: DashboardWelcomeProps) {
             external={!!studio}
             icon={
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.59 13.51 6.83 3.98M15.41 6.51l-6.82 3.98" /></svg>
+            }
+          />
+          <QuickAction
+            label="Enquiries"
+            href="/enquiries"
+            icon={
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
             }
           />
         </div>

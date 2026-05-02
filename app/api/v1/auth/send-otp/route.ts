@@ -116,6 +116,9 @@ export async function POST(request: NextRequest) {
       message: `OTP sent via ${sendResult.channel}`,
       channel: sendResult.channel,
       expiresIn: OTP_EXPIRY_SECONDS,
+      ...(process.env.NODE_ENV !== 'production' && !process.env.META_PHONE_NUMBER_ID
+        ? { dev_otp: otp }
+        : {}),
     });
   } catch (err) {
     console.error("[send-otp] Unexpected error:", err);

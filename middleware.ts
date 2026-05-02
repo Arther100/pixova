@@ -13,6 +13,7 @@ const protectedPaths = [
   "/reviews",
   "/settings",
   "/onboarding",
+  "/enquiries",
 ];
 
 // Routes that require completed onboarding
@@ -24,8 +25,7 @@ const onboardedOnlyPaths = [
   "/payments",
   "/messages",
   "/reviews",
-  "/settings",
-];
+  "/settings",  "/enquiries",];
 
 // Subscription bypass routes (allowed even when expired/suspended)
 // All photographer pages are accessible — limits enforced at API/page level
@@ -41,6 +41,7 @@ const subscriptionBypassPaths = [
   "/calendar",
   "/suspended",
   "/onboarding",
+  "/enquiries",
 ];
 
 // Admin-only paths
@@ -77,6 +78,29 @@ export async function middleware(request: NextRequest) {
       return response;
     }
     return NextResponse.next();
+  }
+
+  // ── Client account routes (/account/*) — marketplace session ──
+  if (pathname.startsWith("/account")) {
+    const accountToken = request.cookies.get("pixova_account_session")?.value;
+    if (!accountToken) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("type", "client");
+      loginUrl.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    try {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
+      const { payload } = await jwtVerify(accountToken, secret);
+      if (payload.role !== "client") throw new Error("Not client");
+      return NextResponse.next();
+    } catch {
+      const response = NextResponse.redirect(
+        new URL("/login?type=client&redirect=" + encodeURIComponent(pathname), request.url)
+      );
+      response.cookies.delete("pixova_account_session");
+      return response;
+    }
   }
 
   // ── Client portal routes — separate auth flow ──

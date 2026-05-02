@@ -19,7 +19,7 @@ export async function GET() {
     // Fetch published gallery for this booking
     const { data: gallery } = await supabase
       .from('galleries')
-      .select('id, title, slug, status, photo_count, allow_download, download_enabled, selection_locked, published_at')
+      .select('id, title, slug, status, photo_count, allow_download, download_enabled, selection_locked, allow_selection, selection_limit, published_at')
       .eq('booking_id', session.bookingId)
       .eq('status', 'published')
       .single();
@@ -58,6 +58,8 @@ export async function GET() {
         allow_download: gallery.allow_download,
         download_enabled: gallery.download_enabled,
         selection_locked: gallery.selection_locked ?? false,
+        allow_selection: gallery.allow_selection ?? false,
+        selection_limit: gallery.selection_limit ?? null,
         published_at: gallery.published_at,
       },
       photos: photosWithUrls,

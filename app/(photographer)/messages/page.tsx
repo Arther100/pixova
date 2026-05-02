@@ -15,6 +15,8 @@ interface ClientMessage {
   is_read: boolean;
   created_at: string;
   client_name: string;
+  client_phone: string;
+  booking_ref: string | null;
   booking_title: string;
 }
 
@@ -24,7 +26,7 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/v1/messages/unread")
+    fetch("/api/v1/messages")
       .then((r) => r.json())
       .then((json) => {
         if (json.success) {
@@ -124,7 +126,7 @@ export default function MessagesPage() {
                     href={`/bookings/${msg.booking_id}`}
                     className="text-xs text-brand-600 hover:underline dark:text-brand-400"
                   >
-                    {msg.booking_title}
+                    {msg.booking_ref ? `${msg.booking_ref} · ` : ""}{msg.booking_title}
                   </Link>
                   <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
                     {msg.message_text}

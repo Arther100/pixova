@@ -41,6 +41,7 @@ interface Photo {
   sort_order: number;
   is_selected?: boolean;
   client_visible?: boolean;
+  show_in_portfolio?: boolean;
 }
 
 interface StorageInfo {
@@ -152,8 +153,8 @@ export default function GalleryManagePage() {
         setSelectionLocked(json.data.selection_locked ?? false);
         setClientPicksCount(json.data.selected_count ?? 0);
         setClientPicks(
-          (json.data.selected_photos || []).map((p: { photo_id: string; url: string; filename: string; sort_order: number }) => ({
-            id: p.photo_id,
+          (json.data.selected_photos || []).map((p: { id: string; url: string; filename: string; sort_order: number }) => ({
+            id: p.id,
             url: p.url,
             thumbnail_url: null,
             original_filename: p.filename,
@@ -210,6 +211,33 @@ export default function GalleryManagePage() {
         showToast("success", "Photo deleted");
       } else {
         showToast("error", json.error || "Failed to delete photo");
+      }
+    } catch {
+      showToast("error", "Network error");
+    }
+  };
+
+  // Toggle portfolio visibility
+  const handleTogglePortfolio = async (photoId: string, show: boolean) => {
+    try {
+      const res = await fetch(
+        `/api/v1/galleries/${bookingId}/photos/${photoId}/portfolio`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ show }),
+        }
+      );
+      const json = await res.json();
+      if (json.success) {
+        setPhotos((prev) =>
+          prev.map((p) =>
+            p.id === photoId ? { ...p, show_in_portfolio: show } : p
+          )
+        );
+        showToast("success", show ? "Added to public portfolio" : "Removed from portfolio");
+      } else {
+        showToast("error", json.error || "Failed to update portfolio");
       }
     } catch {
       showToast("error", "Network error");
@@ -549,7 +577,7 @@ export default function GalleryManagePage() {
             downloadEnabled={true}
           />
 
-          {/* Client picks grid */}
+          {/* Client picks grid with gold heart badges */}
           {clientPicks.length === 0 ? (
             <div className="rounded-xl border border-gray-100 bg-gray-50 p-8 text-center dark:border-gray-800 dark:bg-gray-900">
               <span className="text-3xl">♥</span>
@@ -561,16 +589,30 @@ export default function GalleryManagePage() {
               </p>
             </div>
           ) : (
-            <PhotoGrid
-              photos={clientPicks}
-              isManageMode={false}
-              onDelete={() => {}}
-              onToggleVisibility={() => {}}
-              onPhotoClick={(photo) => {
-                const idx = clientPicks.findIndex((p) => p.id === photo.id);
-                setLightboxIndex(idx);
-              }}
-            />
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              {clientPicks.map((photo) => (
+                <div
+                  key={photo.id}
+                  className="group relative aspect-square overflow-hidden rounded-lg bg-gray-100 ring-2 ring-yellow-400 ring-offset-2 dark:bg-gray-800 dark:ring-offset-gray-900 cursor-pointer"
+                  onClick={() => {
+                    const idx = clientPicks.findIndex((p) => p.id === photo.id);
+                    setLightboxIndex(idx);
+                  }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={photo.thumbnail_url || photo.url}
+                    alt={photo.original_filename}
+                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    loading="lazy"
+                  />
+                  {/* Gold heart badge */}
+                  <div className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-yellow-400 text-sm shadow-md">
+                    ♥
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       ) : (
@@ -592,16 +634,56 @@ export default function GalleryManagePage() {
 
       {/* Photo grid */}
       <div className="mt-6">
-        <PhotoGrid
-          photos={photos}
-          isManageMode={isManageMode}
-          onDelete={handleDeletePhoto}
-          onToggleVisibility={handleToggleVisibility}
-          onPhotoClick={(photo) => {
-            const idx = photos.findIndex((p) => p.id === photo.id);
-            setLightboxIndex(idx);
-          }}
-        />
+        {isManageMode && (
+          <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+            Toggle 🌐 to show photos on your public profile
+          </p>
+        )}
+        <div className={isManageMode ? "grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4" : ""}>
+          {isManageMode ? photos.map((photo) => (
+            <div key={photo.id} className="group relative overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-800 aspect-square">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={photo.thumbnail_url || photo.url}
+                alt={photo.original_filename}
+                className="h-full w-full object-cover cursor-pointer"
+                onClick={() => { const idx = photos.findIndex((p) => p.id === photo.id); setLightboxIndex(idx); }}
+              />
+              {photo.show_in_portfolio && (
+                <div className="absolute left-2 top-2 rounded-full bg-green-600 px-2 py-0.5 text-[10px] font-bold text-white shadow">
+                  🌐 PUBLIC
+                </div>
+              )}
+              <div className="absolute inset-0 flex items-end justify-between bg-black/0 opacity-0 transition-all group-hover:bg-black/20 group-hover:opacity-100">
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleTogglePortfolio(photo.id, !photo.show_in_portfolio); }}
+                  className={`m-2 rounded-full px-2 py-1 text-xs font-medium shadow ${photo.show_in_portfolio ? "bg-green-600 text-white" : "bg-white/90 text-gray-700"}`}
+                  title={photo.show_in_portfolio ? "Remove from portfolio" : "Add to portfolio"}
+                >
+                  🌐
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id); }}
+                  className="m-2 rounded-full bg-red-600 px-2 py-1 text-xs font-medium text-white shadow"
+                  title="Delete photo"
+                >
+                  🗑️
+                </button>
+              </div>
+            </div>
+          )) : (
+            <PhotoGrid
+              photos={photos}
+              isManageMode={false}
+              onDelete={handleDeletePhoto}
+              onToggleVisibility={handleToggleVisibility}
+              onPhotoClick={(photo) => {
+                const idx = photos.findIndex((p) => p.id === photo.id);
+                setLightboxIndex(idx);
+              }}
+            />
+          )}
+        </div>
       </div>
 
       {/* Download all photos */}
