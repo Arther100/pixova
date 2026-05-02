@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     // ── 2. Get client account ──
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let { data: account } = await (supabase.from('client_accounts') as any)
+    const { data: account } = await (supabase.from('client_accounts') as any)
       .select('*')
       .eq('account_id', session.accountId)
       .single();

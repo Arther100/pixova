@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useI18n } from "@/lib/i18n";
 
 interface EnquiryRow {
   enquiry_id: string;
@@ -25,7 +24,6 @@ interface EnquiryRow {
 type StatusFilter = "all" | "PENDING" | "SEEN" | "REPLIED" | "CONVERTED" | "DECLINED";
 
 export default function PhotographerEnquiriesPage() {
-  const { t } = useI18n();
   const [enquiries, setEnquiries] = useState<EnquiryRow[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);

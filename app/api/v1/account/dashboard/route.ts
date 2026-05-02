@@ -6,7 +6,6 @@
 
 export const dynamic = 'force-dynamic';
 
-import { NextRequest } from 'next/server';
 import {
   successResponse, unauthorizedResponse, serverErrorResponse,
 } from '@/lib/api-helpers';
@@ -21,7 +20,7 @@ function photoUrl(key: string | null): string | null {
   return `${R2_PUBLIC}/${key}`;
 }
 
-export async function GET(_request: NextRequest) {
+export async function GET() {
   try {
     const accountSession = await getClientAccountSession();
     if (!accountSession) return unauthorizedResponse();
@@ -51,7 +50,6 @@ export async function GET(_request: NextRequest) {
     ));
 
     // ── Fetch all bookings for those clients ──
-    const now = new Date().toISOString();
     const today = new Date().toISOString().split('T')[0];
 
     const { data: allBookings } = clientIds.length

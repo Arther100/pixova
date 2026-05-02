@@ -364,7 +364,7 @@ export default function StudioProfileContent({ data }: { data: StudioData }) {
                           </span>
                         </div>
                         {r.review_text && (
-                          <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">"{r.review_text}"</p>
+                          <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">&ldquo;{r.review_text}&rdquo;</p>
                         )}
                         {r.photographer_reply && (
                           <div className="mt-3 rounded-lg bg-brand-50 p-3 dark:bg-brand-900/20">

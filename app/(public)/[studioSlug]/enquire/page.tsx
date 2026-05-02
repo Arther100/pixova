@@ -42,7 +42,7 @@ function EnquireContent() {
   const [otp, setOtp] = useState("");
   const [sendingOtp, setSendingOtp] = useState(false);
   const [otpCountdown, setOtpCountdown] = useState(0);
-  const [verifiedOtp, setVerifiedOtp] = useState("");
+  const [, setVerifiedOtp] = useState("");
 
   // Event details
   const [eventType, setEventType] = useState(searchParams.get("event") || "Wedding");

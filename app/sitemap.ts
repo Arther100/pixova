@@ -11,6 +11,7 @@ export default async function sitemap() {
   try {
     const supabase = createSupabaseAdmin();
     const { data: studios } = await (supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .from("studio_profiles") as any)
       .select("slug, updated_at")
       .eq("is_listed", true)
