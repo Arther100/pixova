@@ -105,7 +105,7 @@ export async function log(event: LogEvent): Promise<string | null> {
 
     // 5. Trigger AI analysis for errors and warnings — fire and forget
     if (event.level === 'error' || event.level === 'warn') {
-      void triggerAnalysis(logId, event)
+      void triggerAnalysis(logId)
     }
 
     return logId
@@ -240,8 +240,7 @@ async function upsertLogGroup(
 // Trigger AI analysis (fire and forget)
 // ─────────────────────────────────────
 async function triggerAnalysis(
-  logId: string,
-  _event: LogEvent
+  logId: string
 ): Promise<void> {
   try {
     await fetch(
