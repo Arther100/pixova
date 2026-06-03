@@ -1,6 +1,6 @@
 import type { PipelineHandler } from '../types'
 
-export const notificationPipeline: PipelineHandler = async (event, _tracker, _memory) => {
+export const notificationPipeline: PipelineHandler = async (event) => {
   const agentsRan: string[]     = []
   const agentsSkipped: string[] = []
 
