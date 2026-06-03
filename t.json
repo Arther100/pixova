@@ -1,0 +1,1 @@
+{"messaging_product":"whatsapp","to":"918778667396","type":"template","template":{"name":"pixova_booking_confirmed","language":{"code":"en"},"components":[{"type":"body","parameters":[{"type":"text","text":"John"},{"type":"text","text":"Vijay Photography"}]}]}}

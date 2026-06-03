@@ -8,6 +8,7 @@ export const revalidate = 300;
 
 import { NextRequest } from 'next/server';
 import { successResponse, notFoundResponse, serverErrorResponse } from '@/lib/api-helpers';
+import { emit } from '@/lib/agents/EventBus';
 import { createSupabaseAdmin } from '@/lib/supabase';
 
 const R2_PUBLIC = process.env.R2_PUBLIC_URL ?? '';
@@ -19,7 +20,7 @@ function photoUrl(key: string | null): string | null {
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { studioSlug: string } }
 ) {
   try {
@@ -114,6 +115,12 @@ export async function GET(
       filename: p.original_filename,
       gallery_id: p.gallery_id,
     }));
+
+    // Emit profile viewed event (fire and forget, P3 — non-blocking)
+    void emit.profileViewed({
+      studioId: studio.id,
+      referrer: request.headers.get('referer') ?? undefined,
+    })
 
     return successResponse({
       studio: {

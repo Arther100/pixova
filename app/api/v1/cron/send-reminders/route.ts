@@ -13,6 +13,7 @@ import { logSubscriptionEvent } from '@/lib/adminAuth';
 import { sendAndLog } from '@/lib/notifications';
 import { formatMobile } from '@/lib/whatsapp';
 import { logger } from '@/lib/logger';
+import { emit } from '@/lib/agents/EventBus';
 
 export async function GET(request: NextRequest) {
   try {
@@ -135,6 +136,35 @@ export async function GET(request: NextRequest) {
 
     // Process subscription expiry on each cron run
     await processSubscriptionExpiry(supabase);
+
+    // Emit trialEnding events for trials ending in 3 days
+    const threeDaysFromNow = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: endingTrials } = await supabase
+      .from('subscriptions')
+      .select('id, photographer_id, current_period_end')
+      .eq('status', 'TRIAL')
+      .lte('current_period_end', threeDaysFromNow)
+      .gte('current_period_end', now.toISOString());
+
+    for (const sub of endingTrials ?? []) {
+      const { data: trialStudio } = await supabase
+        .from('studio_profiles')
+        .select('id')
+        .eq('photographer_id', sub.photographer_id)
+        .maybeSingle();
+      if (trialStudio) {
+        const daysLeft = Math.max(0, Math.ceil(
+          (new Date(sub.current_period_end).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+        ));
+        void emit.trialEnding({
+          studioId:        trialStudio.id,
+          photographerId:  sub.photographer_id,
+          daysLeft,
+          bookingsCreated: 0,
+          galleriesCreated: 0,
+        });
+      }
+    }
 
     void logger.info({
       category: 'cron',

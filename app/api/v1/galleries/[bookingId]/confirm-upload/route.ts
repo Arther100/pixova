@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest } from "next/server";
 import { getSessionFromCookie } from "@/lib/session";
 import { createSupabaseAdmin } from "@/lib/supabase";
+import { emit } from '@/lib/agents/EventBus';
 import {
   successResponse,
   errorResponse,
@@ -19,8 +20,7 @@ interface Params {
   params: { bookingId: string };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function POST(request: NextRequest, _context: Params) {
+export async function POST(request: NextRequest, { params }: Params) {
   try {
     const session = await getSessionFromCookie();
     if (!session) return unauthorizedResponse();
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest, _context: Params) {
     // Verify photo belongs to this photographer
     const { data: photo } = await supabase
       .from("gallery_photos")
-      .select("id, size_bytes, photographer_id")
+      .select("id, size_bytes, photographer_id, gallery_id")
       .eq("id", photo_id)
       .eq("photographer_id", session.photographerId)
       .single();
@@ -50,6 +50,17 @@ export async function POST(request: NextRequest, _context: Params) {
       .select("id, storage_used_bytes")
       .eq("photographer_id", session.photographerId)
       .single();
+
+    // Emit photos uploaded event (fire and forget)
+    void emit.photosUploaded({
+      studioId:       studio?.id ?? '',
+      photographerId: session.photographerId,
+      bookingId:      params.bookingId,
+      galleryId:      (photo as { gallery_id?: string | null }).gallery_id ?? params.bookingId,
+      photoCount:     1,
+      totalSizeBytes: actualSize,
+      photoIds:       [photo_id as string],
+    })
 
     if (studio) {
       const newUsed = (studio.storage_used_bytes ?? 0) + actualSize;

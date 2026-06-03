@@ -11,6 +11,7 @@ import { errorResponse, serverErrorResponse } from '@/lib/api-helpers';
 import { createSupabaseAdmin } from '@/lib/supabase';
 import { getClientAccountSession } from '@/lib/clientAuth';
 import { notifyNewEnquiry, notifyEnquirySent } from '@/lib/whatsapp';
+import { emit } from '@/lib/agents/EventBus';
 
 const enquirySchema = z.object({
   client_name:    z.string().min(2).max(100),
@@ -110,6 +111,23 @@ export async function POST(request: NextRequest) {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (supabase.from('enquiry_studios') as any).insert(studioRows);
+
+    // ── 5b. Emit agent event for each studio (fire and forget) ──
+    for (const studio of studios as Array<{ id: string; photographer_id: string }>) {
+      void emit.enquiryReceived({
+        studioId:        studio.id,
+        photographerId:  studio.photographer_id,
+        enquiryId:       enquiry.enquiry_id,
+        enquiryStudioId: studio.id,
+        clientName:      data.client_name,
+        eventType:       data.event_type,
+        eventDate:       data.event_date,
+        eventCity:       data.event_city,
+        budgetMin:       data.budget_min  ?? undefined,
+        budgetMax:       data.budget_max  ?? undefined,
+        message:         data.message     ?? undefined,
+      })
+    }
 
     // ── 6. Notify photographers via WhatsApp ──
     const eventDate = new Date(data.event_date).toLocaleDateString('en-IN', {

@@ -10,6 +10,7 @@ import {
 import { createSupabaseAdmin } from '@/lib/supabase';
 import { getClientSession } from '@/lib/clientAuth';
 import { z } from 'zod';
+import { emit } from '@/lib/agents/EventBus';
 
 const feedbackSchema = z.object({
   rating: z.number().int().min(1).max(5),
@@ -90,6 +91,14 @@ export async function POST(request: NextRequest) {
       console.error('[portal] feedback insert error:', insertErr);
       return serverErrorResponse();
     }
+
+    // Emit review submitted event (fire and forget)
+    void emit.reviewSubmitted({
+      studioId:   session.studioId,
+      bookingId:  session.bookingId,
+      rating:     parsed.data.rating,
+      reviewText: parsed.data.review_text,
+    })
 
     return successResponse(feedback, 201);
   } catch (err) {

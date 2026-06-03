@@ -16,8 +16,7 @@ import {
   serverErrorResponse,
 } from "@/lib/api-helpers";
 import { updateBookingStatusSchema } from "@/lib/validations";
-import { notifyBookingConfirmed } from "@/lib/notifications";
-
+import { notifyBookingConfirmed } from "@/lib/notifications";import { emit } from '@/lib/agents/EventBus';
 // ── Status machine: allowed transitions ──
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   enquiry: ["confirmed", "cancelled"],
@@ -186,6 +185,18 @@ export async function POST(request: NextRequest, { params }: Params) {
             photographerMobile: studioForNotif.phone,
             totalAmount: bookingForNotif.total_amount ?? 0,
           }).catch(err => console.error('[notify booking confirmed]', err));
+
+          void emit.bookingConfirmed({
+            studioId:       studioForNotif.id,
+            photographerId: session.photographerId,
+            bookingId,
+            bookingRef:   bookingForNotif.booking_ref || bookingId.slice(0, 8).toUpperCase(),
+            clientName:   clientForNotif.name,
+            clientPhone:  clientForNotif.phone,
+            eventType:    bookingForNotif.event_type  || 'Event',
+            eventDate:    bookingForNotif.event_date  || new Date().toISOString(),
+            totalAmount:  bookingForNotif.total_amount ?? 0,
+          });
         }
       }
     } else if (newStatus === "cancelled") {

@@ -16,8 +16,7 @@ import {
   serverErrorResponse,
 } from "@/lib/api-helpers";
 import { generateReceiptNumber, derivePaymentStatus } from "@/lib/payments";
-import { notifyPaymentReceived } from "@/lib/notifications";
-
+import { notifyPaymentReceived } from "@/lib/notifications";import { emit } from '@/lib/agents/EventBus';
 interface Params {
   params: { bookingId: string };
 }
@@ -287,6 +286,16 @@ export async function POST(request: NextRequest, { params }: Params) {
           receiptNumber,
           photographerMobile: studioForNotif.phone,
         }).catch(err => console.error('[notify payment received]', err));
+
+        // Emit payment received event (fire and forget)
+        void emit.paymentReceived({
+          studioId:         studioForNotif.id,
+          photographerId:   session.photographerId,
+          bookingId,
+          amount:           amountPaise,
+          balanceRemaining: updatedBooking?.balance_amount ?? 0,
+          receiptNumber,
+        })
       }
     }
 
