@@ -32,7 +32,7 @@ export async function GET(
       .select(
         'id, photographer_id, name, slug, tagline, bio, cover_url, city, state, ' +
         'specializations, languages, starting_price, avg_rating, total_bookings, ' +
-        'is_verified, is_listed, instagram, website, ' +
+        'is_verified, is_listed, instagram_url, website, ' +
         'years_experience, total_events, review_count, response_rate, featured, ' +
         'profile_complete, created_at, updated_at'
       )
@@ -135,7 +135,7 @@ export async function GET(
         response_rate: (studio as Record<string, unknown>).response_rate ?? 100,
         featured: (studio as Record<string, unknown>).featured ?? false,
         is_verified: studio.is_verified,
-        instagram_url: studio.instagram,
+        instagram_url: studio.instagram_url,
         website_url: studio.website,
         cover_photo_url: photoUrl(studio.cover_url),
       },

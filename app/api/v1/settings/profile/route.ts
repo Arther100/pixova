@@ -39,7 +39,7 @@ const profileUpdateSchema = z.object({
   starting_price: z.number().nonnegative().nullable().optional(),
   is_listed: z.boolean().optional(),
   years_experience: z.number().int().nonnegative().nullable().optional(),
-  instagram: z.string().max(100).nullable().optional(),
+  instagram_url: z.string().max(100).nullable().optional(),
   website: z.string().url().nullable().optional().or(z.literal('').transform(() => null)),
 });
 
@@ -56,7 +56,7 @@ export async function GET() {
       .select(
         'id, name, slug, tagline, bio, phone, email, city, state, pincode, gstin, ' +
         'specializations, languages, starting_price, is_listed, is_verified, avg_rating, ' +
-        'total_bookings, cover_url, years_experience, instagram, website, profile_complete'
+        'total_bookings, cover_url, years_experience, instagram_url, website, profile_complete'
       )
       .eq('photographer_id', session.photographerId)
       .single();
@@ -113,7 +113,7 @@ export async function PATCH(request: NextRequest) {
     if (parsed.data.starting_price !== undefined) update.starting_price = parsed.data.starting_price;
     if (parsed.data.is_listed !== undefined) update.is_listed = parsed.data.is_listed;
     if (parsed.data.years_experience !== undefined) update.years_experience = parsed.data.years_experience;
-    if (parsed.data.instagram !== undefined) update.instagram = parsed.data.instagram;
+    if (parsed.data.instagram_url !== undefined) update.instagram_url = parsed.data.instagram_url;
     if (parsed.data.website !== undefined) update.website = parsed.data.website;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -124,7 +124,7 @@ export async function PATCH(request: NextRequest) {
       .select(
         'id, name, slug, tagline, bio, phone, email, city, state, pincode, gstin, ' +
         'specializations, languages, starting_price, is_listed, cover_url, ' +
-        'years_experience, instagram, website, profile_complete'
+        'years_experience, instagram_url, website, profile_complete'
       )
       .single();
 

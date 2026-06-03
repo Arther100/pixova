@@ -20,7 +20,7 @@ interface OnboardingData {
   bio: string;
   whatsapp: string;
   website: string;
-  instagram: string;
+  instagram_url: string;
   city: string;
   state: string;
   pincode: string;
@@ -142,7 +142,7 @@ export function OnboardingForm({
       bio: "",
       whatsapp: initialPhone,
       website: "",
-      instagram: "",
+      instagram_url: "",
       city: "",
       state: "",
       pincode: "",
@@ -443,8 +443,8 @@ export function OnboardingForm({
               </label>
               <input
                 type="text"
-                value={form.instagram}
-                onChange={(e) => updateField("instagram", e.target.value)}
+                value={form.instagram_url}
+                onChange={(e) => updateField("instagram_url", e.target.value)}
                 placeholder="@yourstudio"
                 className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
               />

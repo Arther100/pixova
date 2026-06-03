@@ -48,6 +48,7 @@ export async function GET(request: NextRequest, { params }: Params) {
       .from("gallery_photos")
       .select("id, gallery_id, photographer_id, storage_key, thumbnail_key, original_filename, content_type, size_bytes, width, height, sort_order, is_selected, is_favorited, caption, created_at", { count: "exact" })
       .eq("gallery_id", gallery.id)
+      .is("deleted_at", null)
       .order("sort_order", { ascending: true })
       .range(offset, offset + limit - 1);
 

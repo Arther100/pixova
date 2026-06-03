@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
       .from("otp_sessions")
       .select("*")
       .eq("phone", normalizedPhone)
+      .eq("role", "photographer")
       .eq("verified", false)
       .gt("expires_at", new Date().toISOString())
       .order("created_at", { ascending: false })

@@ -79,6 +79,15 @@ export default function PortalOverviewPage() {
 
   return (
     <div className="space-y-6">
+      {/* Account banner */}
+      <Link
+        href="/account"
+        className="flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700 hover:bg-blue-100 transition-colors"
+      >
+        <span>View all your bookings in one place</span>
+        <span>→</span>
+      </Link>
+
       {/* Welcome */}
       <div>
         <h1 className="text-xl font-bold text-gray-900">

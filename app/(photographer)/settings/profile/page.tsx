@@ -50,7 +50,7 @@ interface StudioProfile {
   starting_price: number | null;
   is_listed: boolean;
   years_experience: number | null;
-  instagram: string | null;
+  instagram_url: string | null;
   website: string | null;
   cover_url: string | null;
   profile_complete: boolean;
@@ -104,7 +104,7 @@ export default function SettingsProfilePage() {
         setStartingPrice(p.starting_price != null ? String(p.starting_price) : "");
         setIsListed(p.is_listed ?? true);
         setYearsExperience(p.years_experience != null ? String(p.years_experience) : "");
-        setInstagram(p.instagram || "");
+        setInstagram(p.instagram_url || "");
         setWebsite(p.website || "");
       }
     } catch {
@@ -154,7 +154,7 @@ export default function SettingsProfilePage() {
           starting_price: startingPrice ? Number(startingPrice) : null,
           is_listed: isListed,
           years_experience: yearsExperience ? Number(yearsExperience) : null,
-          instagram: instagram.trim() || null,
+          instagram_url: instagram.trim() || null,
           website: website.trim() || null,
         }),
       });

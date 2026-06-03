@@ -15,7 +15,7 @@ import {
   notFoundResponse,
   serverErrorResponse,
 } from "@/lib/api-helpers";
-import { deletePhotosFromR2 } from "@/lib/r2";
+
 
 interface Params {
   params: { bookingId: string; photoId: string };
@@ -75,32 +75,29 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
     const { photoId } = params;
     const supabase = createSupabaseAdmin();
 
-    // Get photo to delete
+    // Get photo to soft-delete
     const { data: photo } = await supabase
       .from("gallery_photos")
       .select("id, gallery_id, storage_key, thumbnail_key, size_bytes, photographer_id")
       .eq("id", photoId)
       .eq("photographer_id", session.photographerId)
+      .is("deleted_at", null)
       .single();
 
     if (!photo) return notFoundResponse("Photo not found");
 
-    // Hard delete the photo row
+    // Soft delete — preserve the row and the R2 object
     await supabase
       .from("gallery_photos")
-      .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .eq("id", photoId);
 
-    // Delete from R2
-    const keysToDelete = [photo.storage_key];
-    if (photo.thumbnail_key) keysToDelete.push(photo.thumbnail_key);
-    await deletePhotosFromR2(keysToDelete);
-
-    // Update gallery photo count
+    // Update gallery photo count (only non-deleted photos)
     const { count: remaining } = await supabase
       .from("gallery_photos")
       .select("*", { count: "exact", head: true })
-      .eq("gallery_id", photo.gallery_id);
+      .eq("gallery_id", photo.gallery_id)
+      .is("deleted_at", null);
 
     await supabase
       .from("galleries")
@@ -109,6 +106,12 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", photo.gallery_id);
+
+    // Clear cover photo if this was the cover
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase.from("bookings") as any)
+      .update({ cover_photo_r2_key: null })
+      .eq("cover_photo_r2_key", photo.storage_key);
 
     // Reduce studio storage
     if (photo.size_bytes) {

@@ -70,6 +70,7 @@ export async function GET(request: NextRequest, { params }: Params) {
       .from("gallery_photos")
       .select("id, original_filename, storage_key, thumbnail_key, sort_order, is_selected, is_favorited, caption, created_at", { count: "exact" })
       .eq("gallery_id", gallery.id)
+      .is("deleted_at", null)
       .order("sort_order", { ascending: true })
       .range(offset, offset + limit - 1);
 

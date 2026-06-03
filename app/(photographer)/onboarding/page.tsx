@@ -26,7 +26,7 @@ interface StudioFormData {
   bio: string;
   whatsapp: string;
   website: string;
-  instagram: string;
+  instagram_url: string;
   city: string;
   state: string;
   pincode: string;
@@ -152,7 +152,7 @@ export default function OnboardingPage() {
             tagline: studioData.tagline,
             bio: studioData.bio,
             whatsapp: studioData.whatsapp,
-            instagram: studioData.instagram,
+            instagram_url: studioData.instagram_url,
             website: studioData.website,
             city: studioData.city,
             state: studioData.state,

@@ -163,7 +163,7 @@ async function logNotification(params: {
       campaign_name: params.campaignName,
       template_params: params.templateParams,
       status: params.result.success ? 'SENT' : 'FAILED',
-      aisensy_message_id: params.result.messageId || null,
+      message_id: params.result.messageId || null,
       error_message: params.result.error || null,
       sent_at: params.result.success ? new Date().toISOString() : null,
     });

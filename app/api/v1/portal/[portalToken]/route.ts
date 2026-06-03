@@ -60,6 +60,22 @@ export async function GET(
       user_agent: userAgent,
     });
 
+    // 4b. Upsert client_accounts so portal visitors get a unified account
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: account } = await (supabase.from('client_accounts') as any)
+      .upsert(
+        {
+          phone: client.phone,
+          name: client.name,
+          last_login_at: new Date().toISOString(),
+        },
+        { onConflict: 'phone', ignoreDuplicates: false }
+      )
+      .select('account_id')
+      .single();
+
+    const accountId: string | undefined = account?.account_id;
+
     // 5. Check has_agreement / has_gallery / has_feedback
     const [agRes, galRes, fbRes] = await Promise.all([
       supabase.from('agreements').select('agreement_id').eq('booking_id', booking.id).limit(1),
@@ -73,6 +89,7 @@ export async function GET(
       clientId: client.id,
       studioId: studio.id,
       portalToken,
+      ...(accountId ? { accountId } : {}),
     });
 
     // 7. Build response with Set-Cookie

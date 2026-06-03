@@ -1,7 +1,8 @@
 // ============================================
 // GET /api/v1/agreements/[agreementId]/pdf
-// Generates PDF lazily on first request, caches in R2
-// Returns signed URL for download
+// PDF is generated lazily on first access
+// and cached in R2 for subsequent downloads.
+// This saves compute for agreements never opened.
 // Marks client_viewed_at on first access
 export const dynamic = 'force-dynamic';
 // ============================================
