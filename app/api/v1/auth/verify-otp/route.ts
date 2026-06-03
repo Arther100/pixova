@@ -23,6 +23,7 @@ import { OTP_MAX_ATTEMPTS } from "@/lib/constants";
 import type { OtpSession } from "@/types";
 import crypto from "crypto";
 import { createSessionToken } from "@/lib/session";
+import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -68,6 +69,13 @@ export async function POST(request: NextRequest) {
 
     // ── Check max attempts ──
     if (otpRecord.attempts >= OTP_MAX_ATTEMPTS) {
+      void logger.warn({
+        category: 'auth',
+        message: 'OTP max attempts exceeded',
+        route: '/api/v1/auth/verify-otp',
+        user_phone: normalizedPhone,
+        error_code: 'OTP_MAX_ATTEMPTS',
+      });
       return errorResponse("Too many attempts. Please request a new OTP.");
     }
 

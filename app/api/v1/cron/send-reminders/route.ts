@@ -12,6 +12,7 @@ import { notifyEventReminder } from '@/lib/notifications';
 import { logSubscriptionEvent } from '@/lib/adminAuth';
 import { sendAndLog } from '@/lib/notifications';
 import { formatMobile } from '@/lib/whatsapp';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,6 +23,12 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = createSupabaseAdmin();
+
+    void logger.info({
+      category: 'cron',
+      message: 'send-reminders cron started',
+      route: '/api/v1/cron/send-reminders',
+    });
 
     // Calculate tomorrow's date in IST (UTC+5:30)
     const now = new Date();
@@ -128,6 +135,12 @@ export async function GET(request: NextRequest) {
 
     // Process subscription expiry on each cron run
     await processSubscriptionExpiry(supabase);
+
+    void logger.info({
+      category: 'cron',
+      message: `send-reminders done: ${results.sent} sent, ${results.processed - results.sent} other`,
+      route: '/api/v1/cron/send-reminders',
+    });
 
     return NextResponse.json({ success: true, ...results });
   } catch (err) {

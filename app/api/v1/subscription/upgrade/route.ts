@@ -18,6 +18,7 @@ import {
 import { logSubscriptionEvent } from '@/lib/adminAuth';
 import Razorpay from 'razorpay';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 const PLAN_RAZORPAY_IDS: Record<string, string | undefined> = {
   STARTER: process.env.RAZORPAY_PLAN_STARTER,
@@ -143,6 +144,13 @@ export async function POST(request: NextRequest) {
       });
     } catch (err) {
       console.error('[subscription/upgrade] Razorpay error:', err);
+      void logger.error({
+        category: 'subscription',
+        message: `Subscription creation failed: ${err instanceof Error ? err.message : String(err)}`,
+        route: '/api/v1/subscription/upgrade',
+        photographer_id: session.photographerId,
+        error: err instanceof Error ? err : undefined,
+      });
       return serverErrorResponse('Failed to create Razorpay subscription');
     }
   }

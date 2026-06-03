@@ -5,6 +5,7 @@
 
 import 'server-only';
 import { createSupabaseAdmin } from './supabase';
+import { logger } from './logger';
 
 const META_API = 'https://graph.facebook.com/v19.0';
 
@@ -83,7 +84,14 @@ export async function sendWhatsAppTemplate(params: {
 
     if (!res.ok) {
       const errMsg = data?.error?.message ?? `HTTP ${res.status}`;
+      const errorCode = data?.error?.code?.toString();
       console.error('[WhatsApp] Meta API error:', errMsg);
+      void logger.error({
+        category: 'whatsapp',
+        message: `Meta API error: ${errMsg}`,
+        route: 'lib/whatsapp',
+        error_code: errorCode,
+      });
       return { success: false, error: errMsg };
     }
 
@@ -637,5 +645,54 @@ export async function notifyEnquiryReplied(params: {
   } catch (err) {
     console.error('[whatsapp] notifyEnquiryReplied error:', err);
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+  }
+}
+
+// ─── Direct text message (admin alerts) ───────
+// Sends a free-form text message via Meta Cloud API.
+// Intended for admin-to-admin alerts within a live conversation window.
+export async function sendDirectWhatsApp(params: {
+  to: string
+  message: string
+}): Promise<WhatsAppResult> {
+  try {
+    const phoneNumberId = process.env.META_PHONE_NUMBER_ID;
+    const token = process.env.META_WHATSAPP_TOKEN;
+
+    if (!phoneNumberId || !token) {
+      return { success: false, error: 'Missing META_PHONE_NUMBER_ID or META_WHATSAPP_TOKEN' };
+    }
+
+    const formattedPhone = formatMobile(params.to);
+
+    const res = await fetch(`${META_API}/${phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: formattedPhone,
+        type: 'text',
+        text: {
+          preview_url: false,
+          body: params.message,
+        },
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      const errMsg = data?.error?.message ?? `HTTP ${res.status}`;
+      return { success: false, error: errMsg };
+    }
+
+    const messageId = data?.messages?.[0]?.id ?? undefined;
+    return { success: true, messageId };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : 'Unknown error';
+    return { success: false, error: errMsg };
   }
 }

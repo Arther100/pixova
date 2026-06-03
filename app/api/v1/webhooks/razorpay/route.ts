@@ -8,6 +8,7 @@ import { notifyPaymentReceived } from "@/lib/notifications";
 import { logSubscriptionEvent } from "@/lib/adminAuth";
 import { sendAndLog } from "@/lib/notifications";
 import { formatMobile } from "@/lib/whatsapp";
+import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,6 +17,12 @@ export async function POST(request: NextRequest) {
 
     if (!verifyWebhookSignature(rawBody, signature)) {
       console.error("[webhook] Invalid Razorpay signature");
+      void logger.error({
+        category: 'payment',
+        message: 'Razorpay webhook signature verification failed',
+        route: '/api/v1/webhooks/razorpay',
+        error_code: 'INVALID_WEBHOOK_SIGNATURE',
+      });
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }
 
@@ -148,6 +155,13 @@ export async function POST(request: NextRequest) {
               receiptNumber,
               photographerMobile: studioForNotif.phone,
             }).catch(err => console.error('[notify payment webhook]', err));
+
+            void logger.info({
+              category: 'payment',
+              message: `Payment received: ${receiptNumber} ₹${amountPaid / 100}`,
+              route: '/api/v1/webhooks/razorpay',
+              photographer_id: order.photographer_id,
+            });
           }
         }
 

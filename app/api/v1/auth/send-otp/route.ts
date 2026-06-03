@@ -17,6 +17,7 @@ import {
 import { createSupabaseAdmin } from "@/lib/supabase";
 import { sendOtp } from "@/lib/whatsapp";
 import { sendSMSOTP } from "@/lib/sms";
+import { logger } from "@/lib/logger";
 import crypto from "crypto";
 
 /** Rate limit: max OTPs per phone per hour */
@@ -105,11 +106,31 @@ export async function POST(request: NextRequest) {
     // Try WhatsApp first; fall back to SMS if it fails
     let channel = sendResult.channel ?? 'whatsapp';
     if (!sendResult.success) {
+      void logger.warn({
+        category: 'whatsapp',
+        message: `WhatsApp OTP failed: ${sendResult.error}`,
+        route: '/api/v1/auth/send-otp',
+        user_phone: normalizedPhone,
+        error_code: 'WHATSAPP_SEND_FAILED',
+      });
       const smsResult = await sendSMSOTP(normalizedPhone, otp);
       if (!smsResult.success) {
         return serverErrorResponse("Failed to send OTP. Please try again.");
       }
       channel = 'sms';
+      void logger.info({
+        category: 'auth',
+        message: 'OTP sent via SMS fallback',
+        route: '/api/v1/auth/send-otp',
+        user_phone: normalizedPhone,
+      });
+    } else {
+      void logger.info({
+        category: 'auth',
+        message: 'OTP sent via WhatsApp',
+        route: '/api/v1/auth/send-otp',
+        user_phone: normalizedPhone,
+      });
     }
 
     return successResponse({

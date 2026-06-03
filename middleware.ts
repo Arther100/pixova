@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { logger } from "@/lib/logger";
 
 // Routes that require authentication
 const protectedPaths = [
@@ -186,6 +187,12 @@ export async function middleware(request: NextRequest) {
   if (isProtected && !isAuthenticated) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
+    void logger.warn({
+      category: 'auth',
+      message: `Unauthorized access attempt: ${pathname}`,
+      route: pathname,
+      error_code: 'UNAUTHORIZED',
+    });
     return NextResponse.redirect(loginUrl);
   }
 
@@ -217,6 +224,13 @@ export async function middleware(request: NextRequest) {
         .single();
 
       if (photographer?.is_suspended) {
+        void logger.warn({
+          category: 'auth',
+          message: `Suspended account access attempt`,
+          route: pathname,
+          photographer_id: photographerId ?? undefined,
+          error_code: 'ACCOUNT_SUSPENDED',
+        });
         return trySetCookie(NextResponse.redirect(makeRedirectUrl("/suspended")));
       }
 

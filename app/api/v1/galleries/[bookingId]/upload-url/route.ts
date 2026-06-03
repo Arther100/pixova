@@ -22,6 +22,7 @@ import {
   ALLOWED_MIME_TYPES,
 } from "@/lib/gallery";
 import { getFileExtension } from "@/utils/helpers";
+import { logger } from "@/lib/logger";
 
 interface Params {
   params: { bookingId: string };
@@ -97,6 +98,14 @@ export async function POST(request: NextRequest, { params }: Params) {
     const usedBytes = studio.storage_used_bytes ?? 0;
 
     if (file_size && usedBytes + file_size > maxStorage) {
+      void logger.warn({
+        category: 'gallery',
+        message: `Storage quota exceeded for studio`,
+        route: '/api/v1/galleries/[bookingId]/upload-url',
+        photographer_id: session.photographerId,
+        studio_id: studio.id,
+        error_code: 'STORAGE_QUOTA_EXCEEDED',
+      });
       return errorResponse("Storage quota reached. Upgrade your plan.");
     }
 
