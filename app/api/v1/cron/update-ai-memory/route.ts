@@ -19,7 +19,6 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = createSupabaseAdmin()
-  const now      = new Date().toISOString()
   const today    = new Date().toISOString().split('T')[0]
 
   const results = { studios_updated: 0, platform_updated: false, errors: 0 }
@@ -47,7 +46,7 @@ export async function GET(request: NextRequest) {
     }
 
     // ── 3. Update platform-level AI memory ────────────────────
-    await updatePlatformMemory(supabase, studios as Array<{ id: string; photographer_id: string }>)
+    await updatePlatformMemory(supabase)
     results.platform_updated = true
 
     console.log(`[update-ai-memory] Done: ${results.studios_updated} studios updated`)
@@ -151,8 +150,7 @@ async function updateStudioMemory(
 // ── Platform-level memory update ─────────────────────────────
 async function updatePlatformMemory(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
-  _studios: Array<{ id: string; photographer_id: string }>
+  supabase: any
 ): Promise<void> {
   const now = new Date().toISOString()
 

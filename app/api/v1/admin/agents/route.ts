@@ -1,6 +1,5 @@
 export const dynamic = 'force-dynamic'
 
-import { NextRequest } from 'next/server'
 import { jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
 import { createSupabaseAdmin } from '@/lib/supabase'
@@ -19,7 +18,7 @@ async function verifyAdminSession(): Promise<boolean> {
   }
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     const isAdmin = await verifyAdminSession()
     if (!isAdmin) return unauthorizedResponse()
@@ -119,7 +118,7 @@ export async function GET(_req: NextRequest) {
     }>
 
     const studioIds = Array.from(new Set(recent.map(e => e.studio_id).filter(Boolean))) as string[]
-    let studioNames: Record<string, string> = {}
+    const studioNames: Record<string, string> = {}
     if (studioIds.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: studios } = await (supabase.from('studio_profiles') as any)
@@ -148,7 +147,7 @@ export async function GET(_req: NextRequest) {
       cost_usd: number
     }>
     const topStudioIds = topRows.map(r => r.studio_id)
-    let topStudioNames: Record<string, string> = {}
+    const topStudioNames: Record<string, string> = {}
     if (topStudioIds.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: tStudios } = await (supabase.from('studio_profiles') as any)

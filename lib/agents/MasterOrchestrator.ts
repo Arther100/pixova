@@ -70,7 +70,7 @@ Output JSON matching OrchestrationPlan type.`
     return this.safeParseJSON(raw, this.getFallback({} as OrchestratorInput))
   }
 
-  getFallback(_: OrchestratorInput): OrchestrationPlan {
+  getFallback(_input: OrchestratorInput): OrchestrationPlan {
     return {
       agents_to_run:          [],
       agents_to_skip:         [],
