@@ -70,6 +70,7 @@ Output JSON matching OrchestrationPlan type.`
     return this.safeParseJSON(raw, this.getFallback({} as OrchestratorInput))
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   getFallback(_input: OrchestratorInput): OrchestrationPlan {
     return {
       agents_to_run:          [],

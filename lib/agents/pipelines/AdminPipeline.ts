@@ -1,7 +1,7 @@
 import { AGENT_EVENTS } from '../config'
 import type { PipelineHandler } from '../types'
 
-export const adminPipeline: PipelineHandler = async (event, _tracker, _memory) => {
+export const adminPipeline: PipelineHandler = async (event) => {
   const agentsRan: string[]     = []
   const agentsSkipped: string[] = []
 
