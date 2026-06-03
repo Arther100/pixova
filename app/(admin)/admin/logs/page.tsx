@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 
 // ─── Types ────────────────────────────────────
@@ -251,7 +251,7 @@ function LogDetailModal({
 }
 
 // ─── Main page ────────────────────────────────
-export default function AdminLogsPage() {
+function AdminLogsContent() {
   const searchParams = useSearchParams()
   const [data, setData] = useState<ApiResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -504,5 +504,14 @@ function StatCard({
         {value}
       </p>
     </div>
+  )
+}
+
+// ─── Suspense wrapper (required for useSearchParams in Next.js 14) ────────────
+export default function AdminLogsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-950 flex items-center justify-center text-gray-400">Loading...</div>}>
+      <AdminLogsContent />
+    </Suspense>
   )
 }
