@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS agent_events (
   event_type      VARCHAR(100) NOT NULL,
   event_version   INTEGER DEFAULT 1,
   studio_id       UUID REFERENCES studio_profiles(id) ON DELETE SET NULL,
-  photographer_id UUID REFERENCES photographers(photographer_id) ON DELETE SET NULL,
+  photographer_id UUID REFERENCES photographers(id) ON DELETE SET NULL,
   client_id       UUID,
   account_id      UUID,
   payload         JSONB NOT NULL DEFAULT '{}',
