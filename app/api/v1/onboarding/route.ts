@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { createSupabaseAdmin } from "@/lib/supabase";
-import { getSessionFromCookie } from "@/lib/session";
+import { getSessionFromRequest } from "@/lib/session";
 import {
   errorResponse,
   unauthorizedResponse,
@@ -62,8 +62,8 @@ const onboardingSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // ── Auth check via JWT ──
-    const session = await getSessionFromCookie();
+    // ── Auth check via JWT (cookie or Authorization: Bearer header) ──
+    const session = await getSessionFromRequest(request);
     if (!session) return unauthorizedResponse();
 
     const admin = createSupabaseAdmin();

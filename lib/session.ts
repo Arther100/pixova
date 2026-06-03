@@ -55,6 +55,51 @@ export async function createSessionToken(payload: JwtSessionPayload): Promise<st
 }
 
 /**
+ * Read and verify the session from a NextRequest.
+ * Checks pixova_session cookie first, then Authorization: Bearer header.
+ * Use this in Route Handlers that need to work in cookie-restricted environments
+ * (Safari ITP, WebViews, VS Code Simple Browser iframe).
+ */
+export async function getSessionFromRequest(
+  request: import("next/server").NextRequest
+): Promise<JwtSessionPayload | null> {
+  // 1. Try cookie first (preferred)
+  const cookieToken = request.cookies.get("pixova_session")?.value;
+  if (cookieToken) {
+    try {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
+      const { payload } = await jwtVerify(cookieToken, secret);
+      return {
+        photographerId: payload.photographerId as string,
+        authId: payload.authId as string,
+        phone: payload.phone as string,
+      };
+    } catch {
+      // fall through to Authorization header
+    }
+  }
+
+  // 2. Fallback: Authorization: Bearer <token>
+  const authHeader = request.headers.get("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const bearerToken = authHeader.slice(7);
+    try {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
+      const { payload } = await jwtVerify(bearerToken, secret);
+      return {
+        photographerId: payload.photographerId as string,
+        authId: payload.authId as string,
+        phone: payload.phone as string,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Create a short-lived exchange token (30 seconds).
  * Used by verify-otp to pass session info to the callback route
  * via a URL parameter, not a cookie.

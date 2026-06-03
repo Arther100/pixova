@@ -60,6 +60,9 @@ export default function OnboardingPage() {
   const [isPublic, setIsPublic] = useState(false);
   const [profileScore, setProfileScore] = useState(0);
   const [loginPhone, setLoginPhone] = useState("");
+  // Stash the raw session token so handleGoLive can send it as a
+  // fallback Authorization header when cookies are blocked.
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
 
   // ── Extract phone from JWT (cookie or _pxtoken URL param) ──
   useEffect(() => {
@@ -74,6 +77,7 @@ export default function OnboardingPage() {
       }
 
       if (token) {
+        setSessionToken(token);
         const payload = JSON.parse(atob(token.split(".")[1]));
         const phone = (payload.phone || "").replace("+91", "");
         if (phone) setLoginPhone(phone);
@@ -131,9 +135,14 @@ export default function OnboardingPage() {
     setError(null);
 
     try {
+      const headers: HeadersInit = { "Content-Type": "application/json" };
+      // Send the session token as a Bearer header as a fallback for
+      // environments where cookies are blocked (Safari ITP, WebViews, etc.)
+      if (sessionToken) headers["Authorization"] = `Bearer ${sessionToken}`;
+
       const res = await fetch("/api/v1/onboarding", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           studio: {
             fullName: studioData.fullName,
