@@ -104,6 +104,10 @@ export function PackageSetupForm({
     if (!editing.price.trim()) errs.price = t.packageForm.priceRequired;
     const priceNum = parseInt(editing.price, 10);
     if (isNaN(priceNum) || priceNum < 0) errs.price = t.packageForm.priceInvalid;
+    if (editing.durationHours.trim()) {
+      const hours = parseInt(editing.durationHours, 10);
+      if (isNaN(hours) || hours < 0) errs.durationHours = "Duration must be 0 or more hours";
+    }
     setErrors(errs);
     return Object.keys(errs).length === 0;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -191,7 +195,9 @@ export function PackageSetupForm({
                 </button>
                 <button
                   type="button"
-                  onClick={() => removePackage(i)}
+                  onClick={() => {
+                    if (window.confirm("Remove this package?")) removePackage(i);
+                  }}
                   className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
                   title="Remove"
                 >
@@ -278,6 +284,8 @@ export function PackageSetupForm({
                 }))
               }
               placeholder="8"
+              min={0}
+              error={errors.durationHours}
             />
           </div>
 

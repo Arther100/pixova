@@ -21,7 +21,9 @@ export async function generateReceiptNumber(
     .lt("created_at", `${year + 1}-01-01`);
 
   const seq = ((count ?? 0) + 1).toString().padStart(4, "0");
-  return `RCP-${year}-${seq}`;
+  // Append random hex to prevent collisions from concurrent requests
+  const rand = Math.floor(Math.random() * 0xfff).toString(16).toUpperCase().padStart(3, "0");
+  return `RCP-${year}-${seq}-${rand}`;
 }
 
 // ─── Payment Status Calculation ───────────────

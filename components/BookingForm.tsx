@@ -225,7 +225,9 @@ export function BookingForm({ mode, bookingId, initialData }: BookingFormProps) 
       errors.advanceRupees = "Advance cannot exceed total";
     }
 
-    if (eventDate) {
+    if (!eventDate) {
+      errors.eventDate = "Event date is required";
+    } else {
       const d = new Date(eventDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -310,6 +312,7 @@ export function BookingForm({ mode, bookingId, initialData }: BookingFormProps) 
             const retryJson = await retryRes.json();
             if (!retryRes.ok || !retryJson.success) {
               setError(retryJson.error?.message || retryJson.error || t.bookingForm.somethingWrong);
+              setLoading(false);
               return;
             }
             // Override succeeded — continue to success flow
@@ -320,9 +323,11 @@ export function BookingForm({ mode, bookingId, initialData }: BookingFormProps) 
             return;
           }
           // User cancelled — stay on form
+          setLoading(false);
           return;
         }
         setError(json.error?.message || json.error || t.bookingForm.somethingWrong);
+        setLoading(false);
         return;
       }
 

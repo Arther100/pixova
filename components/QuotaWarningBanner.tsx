@@ -58,7 +58,7 @@ export default function QuotaWarningBanner({
         </span>
       </div>
       <a
-        href="/settings"
+        href="/settings/subscription"
         className={`whitespace-nowrap font-medium underline ${
           isExceeded
             ? "text-red-700 dark:text-red-300"

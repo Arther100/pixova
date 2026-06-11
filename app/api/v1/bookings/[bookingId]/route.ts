@@ -134,6 +134,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
         .from("calendar_blocks")
         .select("id, title")
         .eq("photographer_id", session.photographerId)
+        .neq("booking_id", bookingId)  // exclude this booking's own calendar block
         .lte("start_date", checkDate)
         .gte("end_date", checkDate);
 

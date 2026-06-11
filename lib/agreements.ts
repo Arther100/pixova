@@ -28,7 +28,9 @@ export async function generateAgreementRef(
     .eq("studio_id", studioId);
 
   const seq = ((count ?? 0) + 1).toString().padStart(4, "0");
-  return `AGR-${year}-${code}-${seq}`;
+  // Append random hex to prevent collisions from concurrent requests
+  const rand = Math.floor(Math.random() * 0xffff).toString(16).toUpperCase().padStart(4, "0");
+  return `AGR-${year}-${code}-${seq}-${rand}`;
 }
 
 export function formatEventType(eventType: string | null): string {

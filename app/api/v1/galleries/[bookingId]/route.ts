@@ -78,25 +78,28 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
     // Status transitions
     if (body.status) {
-      const validTransitions: Record<string, string[]> = {
-        draft: ["published"],
-        published: ["archived"],
-        archived: ["published"],
-      };
-
       const currentStatus = existing.status;
       const nextStatus = body.status;
-      const validNext = validTransitions[currentStatus] || [];
 
-      if (!validNext.includes(nextStatus)) {
-        return errorResponse(
-          `Cannot change status from "${currentStatus}" to "${nextStatus}"`
-        );
-      }
+      // Same status — no-op, skip the update
+      if (currentStatus !== nextStatus) {
+        const validTransitions: Record<string, string[]> = {
+          draft: ["published"],
+          published: ["archived"],
+          archived: ["published"],
+        };
 
-      allowed.status = nextStatus;
-      if (nextStatus === "published" && !existing.status?.includes("published")) {
-        allowed.published_at = new Date().toISOString();
+        const validNext = validTransitions[currentStatus] || [];
+        if (!validNext.includes(nextStatus)) {
+          return errorResponse(
+            `Cannot change status from "${currentStatus}" to "${nextStatus}"`
+          );
+        }
+
+        allowed.status = nextStatus;
+        if (nextStatus === "published" && currentStatus !== "published") {
+          allowed.published_at = new Date().toISOString();
+        }
       }
     }
 

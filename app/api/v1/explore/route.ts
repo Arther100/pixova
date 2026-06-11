@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       .eq('profile_complete', true);
 
     if (city)           query = query.ilike('city', city);
-    if (specialization) query = query.contains('specializations', [specialization]);
+    if (specialization) query = query.contains('specializations', [specialization.toLowerCase()]);
     if (minPrice != null) query = query.gte('starting_price', minPrice);
     if (maxPrice != null) query = query.lte('starting_price', maxPrice);
     if (rating != null) query = query.gte('avg_rating', rating);

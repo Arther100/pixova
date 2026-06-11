@@ -15,7 +15,7 @@ const PLANS = [
     features: ["10 bookings/month", "10 GB storage", "Client portal", "Agreements"],
   },
   {
-    slug: "PROFESSIONAL",
+    slug: "PRO",
     name: "Professional",
     price: 1999,
     pricePaise: 199900,
