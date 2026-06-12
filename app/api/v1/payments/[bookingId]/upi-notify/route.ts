@@ -61,8 +61,8 @@ export async function POST(request: NextRequest, { params }: Params) {
       .eq("photographer_id", session.photographerId)
       .single();
 
-    // upi_id column added via migration 20260612_upi_id.sql
-    const studio = studioRaw as (typeof studioRaw & { upi_id?: string | null }) | null;
+    // upi_id column added via migration 20260612_upi_id.sql — types not yet regenerated
+    const studio = studioRaw as unknown as { id: string; name: string; upi_id: string | null } | null;
 
     if (!studio?.upi_id) {
       return errorResponse("UPI ID not configured. Add it in Settings → Profile.");
