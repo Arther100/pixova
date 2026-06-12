@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 // ============================================
 // SendPaymentLinkModal — UPI payment link + QR code (primary)
 //                        Razorpay link (paid subscribers only, optional)

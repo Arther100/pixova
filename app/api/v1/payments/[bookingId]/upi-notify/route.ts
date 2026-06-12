@@ -55,11 +55,14 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     if (!client) return notFoundResponse("Client not found");
 
-    const { data: studio } = await admin
+    const { data: studioRaw } = await admin
       .from("studio_profiles")
       .select("id, name, upi_id")
       .eq("photographer_id", session.photographerId)
       .single();
+
+    // upi_id column added via migration 20260612_upi_id.sql
+    const studio = studioRaw as (typeof studioRaw & { upi_id?: string | null }) | null;
 
     if (!studio?.upi_id) {
       return errorResponse("UPI ID not configured. Add it in Settings → Profile.");
