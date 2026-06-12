@@ -7,6 +7,7 @@
 import 'server-only';
 import {
   sendWhatsAppTemplate,
+  sendWhatsAppImage,
   formatAmount,
   formatDate,
   type WhatsAppResult,
@@ -368,4 +369,50 @@ export async function notifyEventReminder(params: {
     userName: 'Photographer',
     templateParams,
   });
+}
+
+// ─── NOTIFICATION 7: UPI Payment Link ─────────
+// Sends to CLIENT: UPI deep link via approved template, then QR image (best-effort)
+export async function notifyUpiPaymentLink(params: {
+  studioId: string;
+  bookingId: string;
+  bookingRef: string;
+  clientName: string;
+  clientMobile: string;
+  studioName: string;
+  upiId: string;
+  amountRupees: number;
+  upiUrl: string;
+  qrUrl: string;
+}): Promise<void> {
+  const enabled = await isEnabled(params.studioId, 'notify_payment_link');
+  if (!enabled) return;
+
+  // Reuse approved pixova_payment_link template — pass UPI link as paymentUrl
+  // {{1}}=clientName {{2}}=studioName {{3}}=amount {{4}}=ref {{5}}=paymentUrl {{6}}=expiry
+  await sendAndLog({
+    studioId: params.studioId,
+    bookingId: params.bookingId,
+    recipientMobile: params.clientMobile,
+    recipientType: 'CLIENT',
+    campaignName: 'pixova_payment_link',
+    userName: params.clientName,
+    templateParams: [
+      params.clientName,
+      params.studioName,
+      `₹${params.amountRupees.toLocaleString('en-IN')}`,
+      params.bookingRef,
+      params.upiUrl,
+      `UPI ID: ${params.upiId}`,
+    ],
+  });
+
+  // Follow-up: send QR code image (works within 24-hour customer service window)
+  if (params.qrUrl) {
+    await sendWhatsAppImage({
+      to: params.clientMobile,
+      imageUrl: params.qrUrl,
+      caption: `📱 Scan to pay ₹${params.amountRupees.toLocaleString('en-IN')} via any UPI app (Google Pay, PhonePe, Paytm)`,
+    }).catch(() => {}); // non-critical — don't fail if image send fails
+  }
 }

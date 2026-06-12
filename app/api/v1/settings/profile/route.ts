@@ -41,6 +41,7 @@ const profileUpdateSchema = z.object({
   years_experience: z.number().int().nonnegative().nullable().optional(),
   instagram_url: z.string().max(100).nullable().optional(),
   website: z.string().url().nullable().optional().or(z.literal('').transform(() => null)),
+  upi_id: z.string().max(50).nullable().optional(),
 });
 
 export async function GET() {
@@ -56,7 +57,7 @@ export async function GET() {
       .select(
         'id, name, slug, tagline, bio, phone, email, city, state, pincode, gstin, ' +
         'specializations, languages, starting_price, is_listed, is_verified, avg_rating, ' +
-        'total_bookings, cover_url, years_experience, instagram_url, website, profile_complete'
+        'total_bookings, cover_url, years_experience, instagram_url, website, profile_complete, upi_id'
       )
       .eq('photographer_id', session.photographerId)
       .single();
@@ -115,6 +116,7 @@ export async function PATCH(request: NextRequest) {
     if (parsed.data.years_experience !== undefined) update.years_experience = parsed.data.years_experience;
     if (parsed.data.instagram_url !== undefined) update.instagram_url = parsed.data.instagram_url;
     if (parsed.data.website !== undefined) update.website = parsed.data.website;
+    if (parsed.data.upi_id !== undefined) update.upi_id = parsed.data.upi_id;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: updated, error } = await (supabase as any)
@@ -124,7 +126,7 @@ export async function PATCH(request: NextRequest) {
       .select(
         'id, name, slug, tagline, bio, phone, email, city, state, pincode, gstin, ' +
         'specializations, languages, starting_price, is_listed, cover_url, ' +
-        'years_experience, instagram_url, website, profile_complete'
+        'years_experience, instagram_url, website, profile_complete, upi_id'
       )
       .single();
 

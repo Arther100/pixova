@@ -33,6 +33,7 @@ interface StudioFormData {
   specializations: string[];
   languages: string[];
   startingPrice: string;
+  upiId: string;
 }
 
 interface PackageData {
@@ -161,6 +162,7 @@ export default function OnboardingPage() {
             languages: studioData.languages,
             startingPrice: studioData.startingPrice,
             isPublic,
+            upiId: studioData.upiId || undefined,
           },
           packages: packageData.map((pkg, i) => ({
             name: pkg.name,

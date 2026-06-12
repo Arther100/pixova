@@ -104,6 +104,37 @@ export async function sendWhatsAppTemplate(params: {
   }
 }
 
+// ─── Send image message (best-effort, works within 24h customer window) ──
+export async function sendWhatsAppImage(params: {
+  to: string;
+  imageUrl: string;
+  caption?: string;
+}): Promise<WhatsAppResult> {
+  try {
+    const phoneNumberId = process.env.META_PHONE_NUMBER_ID;
+    const token = process.env.META_WHATSAPP_TOKEN;
+    if (!phoneNumberId || !token) return { success: false, error: 'Missing META config' };
+
+    const res = await fetch(`${META_API}/${phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: formatMobile(params.to),
+        type: 'image',
+        image: { link: params.imageUrl, caption: params.caption || '' },
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) return { success: false, error: data?.error?.message ?? `HTTP ${res.status}` };
+    return { success: true, messageId: data?.messages?.[0]?.id };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+  }
+}
+
 // ─── Mobile formatter ─────────────────────────
 export function formatMobile(mobile: string): string {
   const digits = mobile.replace(/\D/g, '');

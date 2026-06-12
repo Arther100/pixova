@@ -76,6 +76,8 @@ export default function BookingPaymentsPage() {
   const [booking, setBooking] = useState<BookingInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPaidSubscriber, setIsPaidSubscriber] = useState(false);
+  const [studioUpiId, setStudioUpiId] = useState<string | null>(null);
+  const [studioName, setStudioName] = useState("");
 
   const [showRecordModal, setShowRecordModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -91,15 +93,17 @@ export default function BookingPaymentsPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [payRes, bookingRes, subRes] = await Promise.all([
+      const [payRes, bookingRes, subRes, profileRes] = await Promise.all([
         fetch(`/api/v1/payments/${bookingId}`),
         fetch(`/api/v1/bookings/${bookingId}`),
         fetch(`/api/v1/subscription`),
+        fetch(`/api/v1/settings/profile`),
       ]);
 
       const payJson = await payRes.json();
       const bookingJson = await bookingRes.json();
       const subJson = await subRes.json();
+      const profileJson = await profileRes.json();
 
       if (payJson.success) {
         setSummary(payJson.data.summary);
@@ -121,6 +125,11 @@ export default function BookingPaymentsPage() {
         const isTrialExpired =
           (status === "TRIAL" || status === "TRIALING") && trialDaysLeft === 0;
         setIsPaidSubscriber(isPaid && !isTrialExpired);
+      }
+
+      if (profileJson.success) {
+        setStudioUpiId(profileJson.data.profile?.upi_id || null);
+        setStudioName(profileJson.data.profile?.name || "");
       }
     } catch {
       // silent
@@ -334,6 +343,8 @@ export default function BookingPaymentsPage() {
           clientName={booking.client.name}
           clientMobile={booking.client.phone}
           balanceAmount={summary.balance_amount}
+          studioUpiId={studioUpiId}
+          studioName={studioName}
           isOpen={showLinkModal}
           onClose={() => setShowLinkModal(false)}
           onSuccess={handleLinkCreated}

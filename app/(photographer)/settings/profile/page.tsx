@@ -79,6 +79,7 @@ export default function SettingsProfilePage() {
   const [yearsExperience, setYearsExperience] = useState("");
   const [instagram, setInstagram] = useState("");
   const [website, setWebsite] = useState("");
+  const [upiId, setUpiId] = useState("");
 
   const showToast = (type: "success" | "error", text: string) => {
     setToast({ type, text });
@@ -106,6 +107,7 @@ export default function SettingsProfilePage() {
         setYearsExperience(p.years_experience != null ? String(p.years_experience) : "");
         setInstagram(p.instagram_url || "");
         setWebsite(p.website || "");
+        setUpiId((p as StudioProfile & { upi_id?: string | null }).upi_id || "");
       }
     } catch {
       showToast("error", "Failed to load profile");
@@ -156,6 +158,7 @@ export default function SettingsProfilePage() {
           years_experience: yearsExperience ? Number(yearsExperience) : null,
           instagram_url: instagram.trim() || null,
           website: website.trim() || null,
+          upi_id: upiId.trim() || null,
         }),
       });
       const json = await res.json();
@@ -494,6 +497,41 @@ export default function SettingsProfilePage() {
               className="mt-1 w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-brand-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 dark:focus:bg-gray-700"
             />
           </div>
+        </div>
+      </div>
+
+      {/* UPI / Payment Settings */}
+      <div className="rounded-xl border border-green-200 bg-white p-5 dark:border-green-800/50 dark:bg-gray-900">
+        <div className="mb-4 flex items-center gap-2">
+          <span className="text-xl">📱</span>
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Payment Settings — UPI ID</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Clients pay directly to your UPI account (Google Pay, PhonePe, Paytm). Pixova never holds your money.
+            </p>
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">
+            UPI ID <span className="text-gray-400">(optional)</span>
+          </label>
+          <input
+            type="text"
+            value={upiId}
+            onChange={(e) => setUpiId(e.target.value.trim())}
+            placeholder="yourname@oksbi  or  9876543210@ybl"
+            className="mt-1 w-full max-w-sm rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-brand-500 focus:bg-white focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500 dark:focus:bg-gray-700"
+          />
+          {upiId && (
+            <p className="mt-1.5 flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400">
+              <span>✅</span> Payment links will use UPI — money goes directly to your account
+            </p>
+          )}
+          {!upiId && (
+            <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+              ⚠️ Without a UPI ID, Razorpay payment links won&apos;t be available
+            </p>
+          )}
         </div>
       </div>
 

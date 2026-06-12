@@ -47,6 +47,7 @@ const onboardingSchema = z.object({
       .optional()
       .or(z.literal("")),
     isPublic: z.boolean().optional().default(false),
+    upiId: z.string().max(50).optional().or(z.literal("")),
   }),
   packages: z.array(
     z.object({
@@ -132,6 +133,7 @@ export async function POST(request: NextRequest) {
         languages: studio.languages || [],
         starting_price: startingPricePaise,
         is_listed: studio.isPublic ?? false,
+        upi_id: studio.upiId || null,
       })
       .select("id")
       .single();

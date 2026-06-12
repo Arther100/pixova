@@ -27,6 +27,7 @@ interface OnboardingData {
   specializations: string[];
   languages: string[];
   startingPrice: string; // display as rupees, convert to paise on submit
+  upiId: string;
 }
 
 interface OnboardingFormProps {
@@ -149,6 +150,7 @@ export function OnboardingForm({
       specializations: [],
       languages: ["Hindi", "English"],
       startingPrice: "",
+      upiId: "",
     }
   );
 
@@ -458,6 +460,27 @@ export function OnboardingForm({
             onChange={(e) => updateField("website", e.target.value)}
             placeholder="https://yourstudio.com"
           />
+
+          {/* UPI ID — clients will pay you directly */}
+          <div className="rounded-xl border border-green-200 bg-green-50/50 p-4 dark:border-green-800/50 dark:bg-green-900/10">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="text-lg">📱</span>
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">UPI ID for Payments</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Clients will pay directly to your UPI ID. Works with Google Pay, PhonePe, Paytm.
+                </p>
+              </div>
+            </div>
+            <input
+              type="text"
+              value={form.upiId}
+              onChange={(e) => updateField("upiId", e.target.value.trim())}
+              placeholder="yourname@oksbi  or  9876543210@ybl"
+              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500"
+            />
+            <p className="mt-1 text-xs text-gray-400">Optional — you can add this later in Settings</p>
+          </div>
 
           <Button onClick={handleNext} className="w-full">
             {t.onboarding.nextLocationSkills}
