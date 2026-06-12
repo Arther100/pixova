@@ -52,7 +52,9 @@ export function SendPaymentLinkModal({
   const [upiId, setUpiId] = useState(initialUpiId || "");
   const [upiError, setUpiError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
-  const [verified, setVerified] = useState<{ name: string | null } | null>(initialUpiId ? { name: null } : null);
+  const [verified, setVerified] = useState<{ name: string | null; by: "razorpay" | "format" } | null>(
+    initialUpiId ? { name: null, by: "format" } : null
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
@@ -87,7 +89,7 @@ export function SendPaymentLinkModal({
         setUpiError(json.error || "UPI ID not found. Please check and try again.");
         return;
       }
-      setVerified({ name: json.data.name || null });
+      setVerified({ name: json.data.name || null, by: json.data.verified_by === "razorpay" ? "razorpay" : "format" });
     } catch {
       setUpiError("Verification failed. Please try again.");
     } finally {
@@ -243,7 +245,9 @@ export function SendPaymentLinkModal({
                     {upiError && <p className="mt-1 text-xs text-red-500">❌ {upiError}</p>}
                     {verified && (
                       <p className="mt-1 text-xs font-medium text-green-600 dark:text-green-400">
-                        ✅ {verified.name ? `${verified.name} — UPI verified` : "UPI ID verified"}
+                        {verified.by === "razorpay"
+                          ? `✅ ${verified.name ? `${verified.name} — verified` : "UPI ID verified by bank"}`
+                          : `✅ UPI format valid${verified.name ? ` · ${verified.name}` : " · switch to live keys for bank verification"}`}
                       </p>
                     )}
                     {!initialUpiId && !verified && (
