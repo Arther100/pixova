@@ -51,6 +51,8 @@ export function SendPaymentLinkModal({
   const [amount, setAmount] = useState(balanceRupees.toString());
   const [upiId, setUpiId] = useState(initialUpiId || "");
   const [upiError, setUpiError] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
+  const [verified, setVerified] = useState<{ name: string | null } | null>(initialUpiId ? { name: null } : null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
@@ -66,8 +68,32 @@ export function SendPaymentLinkModal({
   const amountNum = parseFloat(amount) || 0;
   const amountPaise = rupeesToPaise(amountNum);
   const upiValid = UPI_REGEX.test(upiId.trim());
-  const upiUrl = upiValid ? buildUpiUrl(upiId.trim(), studioName, amountNum, bookingRef) : "";
+  const upiUrl = upiValid && verified ? buildUpiUrl(upiId.trim(), studioName, amountNum, bookingRef) : "";
   const qrUrl = upiUrl ? buildQrUrl(upiUrl) : "";
+
+  const handleVerifyUpi = async () => {
+    if (!upiValid) { setUpiError("Invalid UPI ID format (e.g. name@oksbi or 9876543210@ybl)"); return; }
+    setVerifying(true);
+    setUpiError(null);
+    setVerified(null);
+    try {
+      const res = await fetch("/api/v1/settings/verify-upi", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ upi_id: upiId.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        setUpiError(json.error || "UPI ID not found. Please check and try again.");
+        return;
+      }
+      setVerified({ name: json.data.name || null });
+    } catch {
+      setUpiError("Verification failed. Please try again.");
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   const inputCls = "w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500";
 
@@ -196,20 +222,32 @@ export function SendPaymentLinkModal({
                   <div>
                     <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Your UPI ID <span className="text-red-500">*</span>
-                      {initialUpiId && <span className="ml-1 text-xs font-normal text-green-600">✓ saved</span>}
                     </label>
-                    <input
-                      type="text"
-                      value={upiId}
-                      onChange={(e) => { setUpiId(e.target.value); setUpiError(null); }}
-                      placeholder="name@oksbi  or  9876543210@ybl"
-                      className={`${inputCls} ${upiError ? "border-red-400 focus:border-red-400 focus:ring-red-400" : ""}`}
-                    />
-                    {upiError && <p className="mt-1 text-xs text-red-500">{upiError}</p>}
-                    {!initialUpiId && (
-                      <p className="mt-1 text-xs text-gray-400">
-                        This will be saved to your profile automatically.
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={upiId}
+                        onChange={(e) => { setUpiId(e.target.value); setUpiError(null); setVerified(null); }}
+                        placeholder="name@oksbi  or  9876543210@ybl"
+                        className={`${inputCls} flex-1 ${upiError ? "border-red-400 focus:border-red-400 focus:ring-red-400" : verified ? "border-green-400 focus:border-green-400" : ""}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleVerifyUpi}
+                        disabled={!upiValid || verifying}
+                        className="shrink-0 rounded-xl border border-gray-300 bg-gray-50 px-3 py-2 text-xs font-medium text-gray-700 transition-colors hover:border-brand-400 hover:bg-brand-50 hover:text-brand-700 disabled:cursor-not-allowed disabled:opacity-40 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                      >
+                        {verifying ? "..." : "Verify"}
+                      </button>
+                    </div>
+                    {upiError && <p className="mt-1 text-xs text-red-500">❌ {upiError}</p>}
+                    {verified && (
+                      <p className="mt-1 text-xs font-medium text-green-600 dark:text-green-400">
+                        ✅ {verified.name ? `${verified.name} — UPI verified` : "UPI ID verified"}
                       </p>
+                    )}
+                    {!initialUpiId && !verified && (
+                      <p className="mt-1 text-xs text-gray-400">Verify first, then send. UPI ID will be saved to your profile.</p>
                     )}
                   </div>
 
@@ -232,7 +270,7 @@ export function SendPaymentLinkModal({
 
                   {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
-                  <Button className="w-full" loading={loading} disabled={amountNum <= 0} onClick={handleSendUpi}>
+                  <Button className="w-full" loading={loading} disabled={amountNum <= 0 || !verified} onClick={handleSendUpi}>
                     Send via WhatsApp 📲
                   </Button>
 
