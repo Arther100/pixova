@@ -75,6 +75,7 @@ export default function BookingPaymentsPage() {
   const [activeLink, setActiveLink] = useState<RazorpayOrder | null>(null);
   const [booking, setBooking] = useState<BookingInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isPaidSubscriber, setIsPaidSubscriber] = useState(false);
 
   const [showRecordModal, setShowRecordModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -90,13 +91,15 @@ export default function BookingPaymentsPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [payRes, bookingRes] = await Promise.all([
+      const [payRes, bookingRes, subRes] = await Promise.all([
         fetch(`/api/v1/payments/${bookingId}`),
         fetch(`/api/v1/bookings/${bookingId}`),
+        fetch(`/api/v1/subscription`),
       ]);
 
       const payJson = await payRes.json();
       const bookingJson = await bookingRes.json();
+      const subJson = await subRes.json();
 
       if (payJson.success) {
         setSummary(payJson.data.summary);
@@ -106,6 +109,18 @@ export default function BookingPaymentsPage() {
 
       if (bookingJson.success) {
         setBooking(bookingJson.data);
+      }
+
+      if (subJson.success) {
+        const status = (subJson.data.subscription?.status ?? "").toUpperCase();
+        const trialDaysLeft = subJson.data.subscription?.trial_days_left ?? null;
+        const isPaid =
+          status === "ACTIVE" ||
+          (status === "CANCELLED" && subJson.data.subscription?.current_period_end &&
+            new Date(subJson.data.subscription.current_period_end) > new Date());
+        const isTrialExpired =
+          (status === "TRIAL" || status === "TRIALING") && trialDaysLeft === 0;
+        setIsPaidSubscriber(isPaid && !isTrialExpired);
       }
     } catch {
       // silent
@@ -234,13 +249,27 @@ export default function BookingPaymentsPage() {
               Send via WhatsApp
             </Button>
             {summary && summary.balance_amount > 0 && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setShowLinkModal(true)}
-              >
-                Send Payment Link
-              </Button>
+              isPaidSubscriber ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowLinkModal(true)}
+                >
+                  Send Payment Link
+                </Button>
+              ) : (
+                <div className="relative group">
+                  <Button variant="secondary" size="sm" disabled>
+                    Send Payment Link 🔒
+                  </Button>
+                  <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 w-56 -translate-x-1/2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 z-50">
+                    Payment links require an active paid plan.{" "}
+                    <a href="/settings/subscription" className="font-medium text-brand-600 hover:underline dark:text-brand-400">
+                      Upgrade →
+                    </a>
+                  </div>
+                </div>
+              )
             )}
             <Button size="sm" onClick={() => setShowRecordModal(true)}>
               Record Payment

@@ -31,6 +31,31 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     const admin = createSupabaseAdmin();
     const { bookingId } = params;
+
+    // Payment links require an active paid subscription
+    const { data: sub } = await admin
+      .from("subscriptions")
+      .select("status, current_period_end")
+      .eq("photographer_id", session.photographerId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (sub) {
+      const statusUpper = (sub.status as string).toUpperCase();
+      const now = new Date();
+      const periodEnd = new Date(sub.current_period_end);
+      const isActivePaid =
+        statusUpper === "ACTIVE" ||
+        (statusUpper === "CANCELLED" && now < periodEnd);
+      if (!isActivePaid) {
+        return errorResponse(
+          "Payment links require an active paid subscription. Please upgrade your plan.",
+          403
+        );
+      }
+    }
+
     const body = await request.json();
 
     const {

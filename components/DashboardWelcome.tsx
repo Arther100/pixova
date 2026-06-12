@@ -65,28 +65,57 @@ export function DashboardWelcome({ data }: DashboardWelcomeProps) {
       </div>
 
       {/* Trial banner */}
-      {subscription?.status === "trialing" && subscription.trialEndsAt && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800/50 dark:bg-amber-900/20">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/40">
-              <svg className="h-4 w-4 text-amber-600 dark:text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+      {subscription?.status === "trialing" && subscription.trialEndsAt && (() => {
+        const trialEnd = new Date(subscription.trialEndsAt!);
+        const isExpired = trialEnd <= new Date();
+        if (isExpired) {
+          return (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 dark:border-red-800/50 dark:bg-red-900/20">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/40">
+                    <svg className="h-4 w-4 text-red-600 dark:text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M15 9l-6 6M9 9l6 6" /></svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                      Free trial expired
+                    </p>
+                    <p className="text-xs text-red-600 dark:text-red-400">
+                      Your trial ended on{" "}
+                      {trialEnd.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}.
+                      Upgrade to keep access.
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href="/settings/subscription"
+                  className="shrink-0 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700"
+                >
+                  Upgrade Now →
+                </Link>
+              </div>
             </div>
-            <div>
-              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
-                {t.dashboard.trialActive}
-              </p>
-              <p className="text-xs text-amber-600 dark:text-amber-400">
-                {t.dashboard.trialEnds}{" "}
-                {new Date(subscription.trialEndsAt).toLocaleDateString("en-IN", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
-              </p>
+          );
+        }
+        return (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800/50 dark:bg-amber-900/20">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/40">
+                <svg className="h-4 w-4 text-amber-600 dark:text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                  {t.dashboard.trialActive}
+                </p>
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  {t.dashboard.trialEnds}{" "}
+                  {trialEnd.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">

@@ -30,6 +30,41 @@ export default function GracePeriodBanner() {
   if (!sub || dismissed) return null;
 
   const status = sub.status?.toUpperCase();
+  const isTrialing = status === "TRIAL" || status === "TRIALING";
+  const isTrialExpired = isTrialing && sub.trial_days_left === 0;
+
+  const dismissBtn = (
+    <button
+      onClick={() => {
+        setDismissed(true);
+        sessionStorage.setItem("grace_banner_dismissed", "1");
+      }}
+      className="text-lg leading-none opacity-60 hover:opacity-100"
+    >
+      ×
+    </button>
+  );
+
+  // TRIAL EXPIRED banner — trial period passed but no paid plan yet
+  if (isTrialExpired) {
+    return (
+      <div className="flex items-center justify-between gap-3 bg-red-500/10 border-b border-red-500/20 px-4 py-2.5 text-sm">
+        <div className="flex items-center gap-2">
+          <span className="text-red-400">🚫</span>
+          <span className="text-red-200">
+            Your free trial has <strong className="text-red-100">expired</strong>.
+            Upgrade to keep full access.
+          </span>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <Link href="/settings/subscription" className="text-red-300 hover:text-red-100 font-medium text-xs">
+            Upgrade Now →
+          </Link>
+          <span className="text-red-400">{dismissBtn}</span>
+        </div>
+      </div>
+    );
+  }
 
   // GRACE banner
   if (status === "GRACE") {
@@ -49,22 +84,14 @@ export default function GracePeriodBanner() {
           <Link href="/settings/subscription" className="text-amber-300 hover:text-amber-100 font-medium text-xs">
             Upgrade Now →
           </Link>
-          <button
-            onClick={() => {
-              setDismissed(true);
-              sessionStorage.setItem("grace_banner_dismissed", "1");
-            }}
-            className="text-amber-400/60 hover:text-amber-300 text-lg leading-none"
-          >
-            ×
-          </button>
+          <span className="text-amber-400">{dismissBtn}</span>
         </div>
       </div>
     );
   }
 
-  // TRIAL banner — only show when < 5 days left
-  if ((status === "TRIAL" || status === "TRIALING") && sub.trial_days_left !== null && sub.trial_days_left <= 5) {
+  // TRIAL ACTIVE banner — only show when ≤ 5 days left
+  if (isTrialing && sub.trial_days_left !== null && sub.trial_days_left > 0 && sub.trial_days_left <= 5) {
     return (
       <div className="flex items-center justify-between gap-3 bg-blue-500/10 border-b border-blue-500/20 px-4 py-2.5 text-sm">
         <div className="flex items-center gap-2">
@@ -80,15 +107,7 @@ export default function GracePeriodBanner() {
           <Link href="/settings/subscription" className="text-blue-300 hover:text-blue-100 font-medium text-xs">
             View Plans →
           </Link>
-          <button
-            onClick={() => {
-              setDismissed(true);
-              sessionStorage.setItem("grace_banner_dismissed", "1");
-            }}
-            className="text-blue-400/60 hover:text-blue-300 text-lg leading-none"
-          >
-            ×
-          </button>
+          <span className="text-blue-400">{dismissBtn}</span>
         </div>
       </div>
     );

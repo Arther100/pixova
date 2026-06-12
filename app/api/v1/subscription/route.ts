@@ -65,17 +65,20 @@ export async function GET() {
   const now = new Date();
   const periodEnd = new Date(sub.current_period_end);
   const graceEnd = sub.grace_period_ends_at ? new Date(sub.grace_period_ends_at) : null;
+  const statusUpper = (sub.status as string).toUpperCase();
 
   // Compute grace days left
   let graceDaysLeft: number | null = null;
-  if (sub.status === 'GRACE' && graceEnd && now < graceEnd) {
+  if (statusUpper === 'GRACE' && graceEnd && now < graceEnd) {
     graceDaysLeft = Math.ceil((graceEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   }
 
-  // Compute trial days left
+  // Compute trial days left (0 when expired so UI can show expired state)
   let trialDaysLeft: number | null = null;
-  if (sub.status === 'TRIAL' && now < periodEnd) {
-    trialDaysLeft = Math.ceil((periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  if (statusUpper === 'TRIAL' || statusUpper === 'TRIALING') {
+    trialDaysLeft = now < periodEnd
+      ? Math.ceil((periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
   }
 
   // Fetch storage usage
