@@ -30,7 +30,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     const admin = createSupabaseAdmin();
     const { bookingId } = params;
     const body = await request.json();
-    const { amount, upi_url, qr_url } = body;
+    const { amount, upi_url, qr_url, upi_id } = body;
 
     if (!amount || typeof amount !== "number" || amount <= 0) {
       return errorResponse("Amount must be greater than 0");
@@ -64,8 +64,19 @@ export async function POST(request: NextRequest, { params }: Params) {
     // upi_id column added via migration 20260612_upi_id.sql — types not yet regenerated
     const studio = studioRaw as unknown as { id: string; name: string; upi_id: string | null } | null;
 
-    if (!studio?.upi_id) {
-      return errorResponse("UPI ID not configured. Add it in Settings → Profile.");
+    // Use UPI ID from request body (inline entry) or from saved profile
+    const resolvedUpiId = (upi_id as string | undefined)?.trim() || studio?.upi_id;
+
+    if (!resolvedUpiId) {
+      return errorResponse("UPI ID is required.");
+    }
+
+    // Save to profile if it was entered inline and not yet saved
+    if (upi_id && studio && !studio.upi_id) {
+      await admin
+        .from("studio_profiles")
+        .update({ upi_id: resolvedUpiId })
+        .eq("photographer_id", session.photographerId);
     }
 
     await notifyUpiPaymentLink({
@@ -75,7 +86,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       clientName: client.name,
       clientMobile: client.phone,
       studioName: studio.name,
-      upiId: studio.upi_id,
+      upiId: resolvedUpiId,
       amountRupees: paiseToRupees(amount),
       upiUrl: upi_url,
       qrUrl: qr_url || "",
