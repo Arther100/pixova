@@ -64,8 +64,10 @@ export async function POST(request: NextRequest, { params }: Params) {
     // upi_id column added via migration 20260612_upi_id.sql — types not yet regenerated
     const studio = studioRaw as unknown as { id: string; name: string; upi_id: string | null } | null;
 
+    if (!studio) return notFoundResponse("Studio profile not found");
+
     // Use UPI ID from request body (inline entry) or from saved profile
-    const resolvedUpiId = (upi_id as string | undefined)?.trim() || studio?.upi_id;
+    const resolvedUpiId = (upi_id as string | undefined)?.trim() || studio.upi_id;
 
     if (!resolvedUpiId) {
       return errorResponse("UPI ID is required.");
