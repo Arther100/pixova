@@ -73,7 +73,8 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     // Save to profile if it was entered inline and not yet saved
     if (upi_id && studio && !studio.upi_id) {
-      await admin
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (admin as any)
         .from("studio_profiles")
         .update({ upi_id: resolvedUpiId })
         .eq("photographer_id", session.photographerId);
