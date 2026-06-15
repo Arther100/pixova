@@ -1,6 +1,6 @@
 // POST /api/v1/subscription/upi-request
 // Photographer submits UTR after paying via UPI.
-// Sends a WhatsApp alert to admin for manual activation.
+// Saves request to DB and sends WhatsApp alert to admin.
 
 export const dynamic = "force-dynamic";
 
@@ -37,8 +37,9 @@ export async function POST(request: NextRequest) {
     }
 
     const admin = createSupabaseAdmin();
+    const utr = utr_number.trim();
 
-    // Get photographer profile for the alert
+    // Get photographer profile
     const { data: studio } = await admin
       .from("studio_profiles")
       .select("name, phone")
@@ -46,26 +47,48 @@ export async function POST(request: NextRequest) {
       .single();
 
     const studioName = studio?.name || "Unknown studio";
-    const phone = studio?.phone || session.photographerId;
+    const phone = studio?.phone || "";
     const planLabel = PLAN_NAMES[plan_slug as string];
-    const utr = utr_number.trim();
 
-    // Notify admin via WhatsApp
+    // Save request to DB
+    const { data: saved, error: saveErr } = await admin
+      .from("subscription_payment_requests")
+      .insert({
+        photographer_id: session.photographerId,
+        plan_slug: plan_slug as string,
+        amount_rupees: amount as number,
+        utr_number: utr,
+        studio_name: studioName,
+        phone,
+        status: "pending",
+      })
+      .select("id")
+      .single();
+
+    if (saveErr) {
+      console.error("[upi-request] DB insert error:", saveErr);
+      return serverErrorResponse();
+    }
+
+    // WhatsApp alert to admin with dashboard link
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://pixova.in";
     const adminPhone = process.env.ADMIN_PHONE || "918778667396";
+    const dashboardUrl = `${appUrl}/admin/subscriptions`;
+
     await sendDirectWhatsApp({
       to: adminPhone,
       message:
-        `🔔 *Subscription Payment Request*\n\n` +
+        `🔔 *New Subscription Payment*\n\n` +
         `Studio: ${studioName}\n` +
         `Phone: ${phone}\n` +
         `Plan: ${planLabel}\n` +
         `Amount: ₹${amount}\n` +
-        `UTR: \`${utr}\`\n\n` +
-        `Verify the payment and activate the plan in Supabase.\n` +
-        `Photographer ID: ${session.photographerId}`,
+        `UTR: \`${utr}\`\n` +
+        `Request ID: \`${saved.id}\`\n\n` +
+        `👉 Activate here:\n${dashboardUrl}`,
     });
 
-    return successResponse({ submitted: true });
+    return successResponse({ submitted: true, request_id: saved.id });
   } catch (err) {
     console.error("[upi-request] error:", err);
     return serverErrorResponse();
