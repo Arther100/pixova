@@ -48,16 +48,30 @@ export async function POST(request: NextRequest) {
     const admin = createSupabaseAdmin();
 
     // Fetch the payment request
-    const { data: req } = await admin
+    // Cast to unknown first — table not yet in generated Supabase types
+    const { data: reqRaw } = await admin
       .from("subscription_payment_requests")
       .select("*")
       .eq("id", request_id)
       .single();
 
+    const req = reqRaw as unknown as {
+      id: string;
+      photographer_id: string;
+      plan_slug: string;
+      amount_rupees: number;
+      utr_number: string;
+      status: string;
+      studio_name: string | null;
+      phone: string | null;
+      created_at: string;
+      activated_at: string | null;
+    } | null;
+
     if (!req) return notFoundResponse("Payment request not found");
     if (req.status === "activated") return errorResponse("Already activated");
 
-    const planSlug = (req.plan_slug as string).toUpperCase();
+    const planSlug = req.plan_slug.toUpperCase();
     const periodEnd = new Date(Date.now() + PLAN_PERIOD_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
     // Upgrade the subscription in Supabase
@@ -79,7 +93,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark the request as activated
-    await admin
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (admin as any)
       .from("subscription_payment_requests")
       .update({ status: "activated", activated_at: new Date().toISOString() })
       .eq("id", request_id);

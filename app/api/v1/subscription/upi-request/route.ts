@@ -50,8 +50,9 @@ export async function POST(request: NextRequest) {
     const phone = studio?.phone || "";
     const planLabel = PLAN_NAMES[plan_slug as string];
 
-    // Save request to DB
-    const { data: saved, error: saveErr } = await admin
+    // Save request to DB — cast: table not yet in generated Supabase types
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: saved, error: saveErr } = await (admin as any)
       .from("subscription_payment_requests")
       .insert({
         photographer_id: session.photographerId,

@@ -41,7 +41,8 @@ export async function GET() {
 
     if (error) return serverErrorResponse();
 
-    return successResponse({ requests: data ?? [] });
+    // Cast — table not yet in generated Supabase types
+    return successResponse({ requests: (data ?? []) as unknown[] });
   } catch (err) {
     console.error("[admin/payment-requests]", err);
     return serverErrorResponse();
