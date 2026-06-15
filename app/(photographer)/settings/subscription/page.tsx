@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
 import UsageBar from "@/components/UsageBar";
+import { SubscriptionUpiModal } from "@/components/SubscriptionUpiModal";
 
 const PLANS = [
   {
@@ -47,32 +48,10 @@ function formatAmount(paise: number | null) {
 
 export default function SubscriptionPage() {
   const { data, loading, error, refresh } = useSubscription();
-  const [upgrading, setUpgrading] = useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<typeof PLANS[number] | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-
-  async function handleUpgrade(planSlug: string) {
-    setUpgrading(planSlug);
-    setActionError(null);
-    try {
-      const res = await fetch("/api/v1/subscription/upgrade", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan_name: planSlug, payment_method: "subscription" }),
-      });
-      const json = await res.json();
-      if (json.success && json.data?.subscription_url) {
-        window.location.href = json.data.subscription_url;
-      } else {
-        setActionError(json.error || "Failed to create subscription");
-      }
-    } catch {
-      setActionError("Network error. Please try again.");
-    } finally {
-      setUpgrading(null);
-    }
-  }
 
   async function handleCancel() {
     setCancelling(true);
@@ -259,11 +238,10 @@ export default function SubscriptionPage() {
                   </button>
                 ) : (
                   <button
-                    onClick={() => handleUpgrade(plan.slug)}
-                    disabled={upgrading !== null}
-                    className="w-full rounded-xl py-2 text-sm font-medium bg-brand-500 hover:bg-brand-600 text-white transition-colors disabled:opacity-60"
+                    onClick={() => setSelectedPlan(plan)}
+                    className="w-full rounded-xl py-2 text-sm font-medium bg-brand-500 hover:bg-brand-600 text-white transition-colors"
                   >
-                    {upgrading === plan.slug ? "Redirecting…" : "Upgrade →"}
+                    Upgrade →
                   </button>
                 )}
               </div>
@@ -281,6 +259,16 @@ export default function SubscriptionPage() {
 
       {/* Billing History */}
       <BillingHistory />
+
+      {/* UPI Upgrade Modal */}
+      {selectedPlan && (
+        <SubscriptionUpiModal
+          plan={selectedPlan}
+          isOpen={!!selectedPlan}
+          onClose={() => setSelectedPlan(null)}
+          onSuccess={() => refresh()}
+        />
+      )}
 
       {/* Cancel */}
       {(isActive || isGrace) && billing.razorpay_sub_id && (
