@@ -87,14 +87,13 @@ export async function POST(request: NextRequest) {
           });
         }
 
+        // res.ok + !data.success = VPA reached NPCI but ID not registered
         if (res.ok && !data.success) {
           return errorResponse("UPI ID not found. Please check and try again.");
         }
 
-        // Razorpay returned an error (e.g. VPA not registered)
-        if (data.error?.description) {
-          return errorResponse(data.error.description);
-        }
+        // Non-2xx (404/503 etc.) = Razorpay VPA feature not available on this account
+        // Fall through to format validation below
       } catch {
         // Razorpay call failed — fall through to format validation
       }
