@@ -27,9 +27,9 @@ const PLAN_RAZORPAY_IDS: Record<string, string | undefined> = {
 };
 
 const PLAN_AMOUNTS: Record<string, number> = {
-  STARTER: 99900,  // ₹999
-  PRO:     199900, // ₹1999
-  STUDIO:  499900, // ₹4999
+  STARTER: 39900,  // ₹399
+  PRO:     69900,  // ₹699
+  STUDIO:  129900, // ₹1299
 };
 
 const upgradeSchema = z.object({

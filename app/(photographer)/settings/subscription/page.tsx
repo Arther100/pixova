@@ -8,8 +8,8 @@ const PLANS = [
   {
     slug: "STARTER",
     name: "Starter",
-    price: 999,
-    pricePaise: 99900,
+    price: 399,
+    pricePaise: 39900,
     bookings: 10,
     storage: "10 GB",
     features: ["10 bookings/month", "10 GB storage", "Client portal", "Agreements"],
@@ -17,8 +17,8 @@ const PLANS = [
   {
     slug: "PRO",
     name: "Professional",
-    price: 1999,
-    pricePaise: 199900,
+    price: 699,
+    pricePaise: 69900,
     bookings: 30,
     storage: "50 GB",
     features: ["30 bookings/month", "50 GB storage", "Priority support", "Custom branding"],
@@ -27,8 +27,8 @@ const PLANS = [
   {
     slug: "STUDIO",
     name: "Studio",
-    price: 4999,
-    pricePaise: 499900,
+    price: 1299,
+    pricePaise: 129900,
     bookings: null,
     storage: "200 GB",
     features: ["Unlimited bookings", "200 GB storage", "Multi-user", "White-label"],

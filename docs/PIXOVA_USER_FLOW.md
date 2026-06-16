@@ -215,9 +215,9 @@ Settings → Subscription → Choose Plan
 
 | Plan | Price | Bookings | Storage | Best For |
 |---|---|---|---|---|
-| **Starter** | ₹999/mo | 10/month | 10 GB | Solo photographers starting out |
-| **Professional** | ₹1,999/mo | 30/month | 50 GB | Active photographers with regular clients |
-| **Studio** | ₹4,999/mo | Unlimited | 200 GB | Studios with multiple photographers |
+| **Starter** | ₹399/mo | 10/month | 10 GB | Solo photographers starting out |
+| **Professional** | ₹699/mo | 30/month | 50 GB | Active photographers with regular clients |
+| **Studio** | ₹1,299/mo | Unlimited | 200 GB | Studios with multiple photographers |
 
 **14-day free trial** — no payment needed to start.
 
