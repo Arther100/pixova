@@ -40,7 +40,7 @@ const onboardingSchema = z.object({
     city: z.string().max(100).optional().or(z.literal("")),
     state: z.string().max(100).optional().or(z.literal("")),
     pincode: z.string().max(10).optional().or(z.literal("")),
-    specializations: z.array(z.string().max(50)).max(10).optional(),
+    specializations: z.array(z.string().max(50)).max(20).optional(),
     languages: z.array(z.string().max(30)).max(10).optional(),
     startingPrice: z
       .string()
