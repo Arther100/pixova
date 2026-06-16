@@ -235,7 +235,7 @@ export async function createTrialSubscription(
   }
 
   const now = new Date();
-  const trialEnd = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // 14-day trial
+  const trialEnd = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000); // 60-day trial
 
   await supabase.from("subscriptions").insert({
     photographer_id: photographerId,
