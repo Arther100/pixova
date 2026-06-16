@@ -71,12 +71,28 @@ export async function POST(request: NextRequest) {
 
   if (!studio) return serverErrorResponse('Studio profile not found');
 
-  // Get plan record
-  const { data: plan } = await supabase
+  // Map slug to full plan name in DB
+  const PLAN_DB_NAMES: Record<string, string> = {
+    STARTER: 'Starter',
+    PRO: 'Professional',
+    STUDIO: 'Studio',
+  };
+
+  // Get plan record — try by slug first, fall back to name
+  let { data: plan } = await supabase
     .from('plans')
     .select('id, name, price_monthly')
-    .ilike('name', plan_name)
-    .single();
+    .ilike('slug', plan_name)
+    .maybeSingle();
+
+  if (!plan) {
+    const { data: planByName } = await supabase
+      .from('plans')
+      .select('id, name, price_monthly')
+      .ilike('name', PLAN_DB_NAMES[plan_name] ?? plan_name)
+      .maybeSingle();
+    plan = planByName;
+  }
 
   if (!plan) return errorResponse('Plan not found', 404);
 
